@@ -169,7 +169,7 @@ export async function GET(
              await (page as Page).evaluate(scrollIntoViewInPage, reviewSectionSelector);
 
              console.log("Waiting for review feed aria-busy to be 'false'...");
-             await page.waitForFunction(() => {
+             await (page as Page).waitForFunction(() => {
                  const reviewFeed = document.querySelector('div#pdp_comp-review section[role="feed"]');
                  return reviewFeed?.getAttribute('aria-busy') === 'false';
              }, { timeout: 30000 }); // 30 second timeout
