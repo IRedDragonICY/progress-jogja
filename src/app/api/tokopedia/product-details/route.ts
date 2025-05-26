@@ -1,6 +1,8 @@
 import {NextRequest, NextResponse} from 'next/server';
 import {JSDOM} from 'jsdom';
 import puppeteer, {Browser} from 'puppeteer';
+import chromium from '@sparticuz/chromium-min';
+import puppeteerCore from 'puppeteer-core';
 
 interface RatingBreakdown {
     star: number;
@@ -95,6 +97,7 @@ function extractFloatNumber(text: string | null | undefined): number | null {
     return isNaN(num) ? null : num;
 }
 
+const remoteExecutablePath = "https://github.com/Sparticuz/chromium/releases/download/v121.0.0/chromium-v121.0.0-pack.tar";
 
 export async function GET(
     req: NextRequest
@@ -108,23 +111,33 @@ export async function GET(
     let browser: Browser | null = null;
 
     try {
-        browser = await puppeteer.launch({
-          headless: true,
-          args: [
-              '--no-sandbox',
-              '--disable-setuid-sandbox',
-              '--disable-dev-shm-usage',
-              '--disable-accelerated-2d-canvas',
-              '--no-first-run',
-              '--no-zygote',
-              '--disable-gpu',
-              '--disable-extensions',
-              '--mute-audio',
-              '--disable-background-networking',
-              '--disable-sync'
-          ],
-          defaultViewport: { width: 1366, height: 768 }
-        });
+        if (process.env.NEXT_PUBLIC_VERCEL_ENVIRONMENT === "production") {
+            browser = await puppeteerCore.launch({
+                args: chromium.args,
+                executablePath: await chromium.executablePath(remoteExecutablePath),
+                headless: chromium.headless, // Use chromium.headless for production
+                ignoreHTTPSErrors: true,
+            });
+        } else {
+            // Keep existing local development launch options
+            browser = await puppeteer.launch({
+              headless: true, // Or false for local debugging
+              args: [
+                  '--no-sandbox',
+                  '--disable-setuid-sandbox',
+                  '--disable-dev-shm-usage',
+                  '--disable-accelerated-2d-canvas',
+                  '--no-first-run',
+                  '--no-zygote',
+                  '--disable-gpu',
+                  '--disable-extensions',
+                  '--mute-audio',
+                  '--disable-background-networking',
+                  '--disable-sync'
+              ],
+              defaultViewport: { width: 1366, height: 768 }
+            });
+        }
         const page = await browser.newPage();
 
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36');
