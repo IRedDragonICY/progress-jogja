@@ -1,8 +1,8 @@
 import {NextRequest, NextResponse} from 'next/server';
 import {JSDOM} from 'jsdom';
-import puppeteer, {Browser} from 'puppeteer';
+import puppeteer, { Browser } from 'puppeteer';
 import chromium from '@sparticuz/chromium-min';
-import puppeteerCore from 'puppeteer-core';
+import puppeteerCore, { Browser as PuppeteerCoreBrowser } from 'puppeteer-core';
 
 interface RatingBreakdown {
     star: number;
@@ -108,7 +108,7 @@ export async function GET(
         return NextResponse.json({ error: 'URL query parameter is required' }, { status: 400 });
     }
 
-    let browser: Browser | null = null;
+    let browser: Browser | PuppeteerCoreBrowser | null = null;
 
     try {
         if (process.env.NEXT_PUBLIC_VERCEL_ENVIRONMENT === "production") {
