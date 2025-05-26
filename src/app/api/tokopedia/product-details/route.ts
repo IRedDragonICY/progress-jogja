@@ -160,8 +160,9 @@ export async function GET(
         try {
              const reviewSectionSelector = '#pdp_comp-review';
              await page.waitForSelector(reviewSectionSelector, { timeout: 15000 });
-             await page.evaluate((selector) => {
-                 document.querySelector(selector)?.scrollIntoView({ behavior: 'auto', block: 'center' });
+             await (page as Page).evaluate((selector: any) => { // Added ': any' for selector type
+                 const el = document.querySelector(selector);
+                 el?.scrollIntoView({ behavior: 'auto', block: 'center' });
              }, reviewSectionSelector);
 
              await page.waitForSelector('#review-feed article.css-15m2bcr', { timeout: 15000, visible: true });
