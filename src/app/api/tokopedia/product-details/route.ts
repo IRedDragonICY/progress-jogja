@@ -168,7 +168,7 @@ export async function GET(
 
              await (page as Page).evaluate(scrollIntoViewInPage, reviewSectionSelector);
 
-             await page.waitForSelector('#review-feed article.css-15m2bcr', { timeout: 15000, visible: true });
+             await page.waitForSelector('#review-feed article.css-15m2bcr', { timeout: 25000, visible: true });
         } catch (reviewWaitError) {
              console.warn("Review section or feed articles did not fully appear after scroll/wait:", reviewWaitError instanceof Error ? reviewWaitError.message : reviewWaitError);
         }
