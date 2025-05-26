@@ -168,6 +168,14 @@ export async function GET(
 
              await (page as Page).evaluate(scrollIntoViewInPage, reviewSectionSelector);
 
+             // ADD NEW SCROLLING LOGIC HERE:
+             for (let i = 0; i < 3; i++) { // Scroll 3 times by viewport height
+                 await (page as Page).evaluate(() => window.scrollBy(0, window.innerHeight));
+                 await new Promise(resolve => setTimeout(resolve, 750)); // Wait 750ms between scrolls
+             }
+             // END OF NEW SCROLLING LOGIC
+
+             // Existing wait for at least one review article to be visible
              await page.waitForSelector('#review-feed article.css-15m2bcr', { timeout: 25000, visible: true });
         } catch (reviewWaitError) {
              console.warn("Review section or feed articles did not fully appear after scroll/wait:", reviewWaitError instanceof Error ? reviewWaitError.message : reviewWaitError);
