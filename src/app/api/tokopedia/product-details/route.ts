@@ -176,12 +176,16 @@ export async function GET(
              // END OF NEW SCROLLING LOGIC
 
              // Existing wait for at least one review article to be visible
+             console.log("Attempting to wait for review articles...");
              await page.waitForSelector('#review-feed article.css-15m2bcr', { timeout: 25000, visible: true });
+             console.log("Review articles selector found or timeout passed without error.");
         } catch (reviewWaitError) {
-             console.warn("Review section or feed articles did not fully appear after scroll/wait:", reviewWaitError instanceof Error ? reviewWaitError.message : reviewWaitError);
+             console.error("Error or timeout waiting for review section/articles:", reviewWaitError instanceof Error ? reviewWaitError.message : String(reviewWaitError));
         }
 
-        await new Promise(resolve => setTimeout(resolve, 300));
+        console.log("Final short delay before getting page content...");
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Increased to 2000ms
+        console.log("Finished final delay.");
 
         const html = await page.content();
 
