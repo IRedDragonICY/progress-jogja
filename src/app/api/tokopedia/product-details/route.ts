@@ -168,17 +168,16 @@ export async function GET(
 
              await (page as Page).evaluate(scrollIntoViewInPage, reviewSectionSelector);
 
-             // ADD NEW SCROLLING LOGIC HERE:
-             for (let i = 0; i < 3; i++) { // Scroll 3 times by viewport height
-                 await (page as Page).evaluate(() => window.scrollBy(0, window.innerHeight));
-                 await new Promise(resolve => setTimeout(resolve, 750)); // Wait 750ms between scrolls
-             }
-             // END OF NEW SCROLLING LOGIC
+             console.log("Waiting for review feed aria-busy to be 'false'...");
+             await page.waitForFunction(() => {
+                 const reviewFeed = document.querySelector('div#pdp_comp-review section[role="feed"]');
+                 return reviewFeed?.getAttribute('aria-busy') === 'false';
+             }, { timeout: 30000 }); // 30 second timeout
+             console.log("Review feed aria-busy is 'false'.");
 
-             // Existing wait for at least one review article to be visible
-             console.log("Attempting to wait for review articles...");
-             await page.waitForSelector('#review-feed article.css-15m2bcr', { timeout: 25000, visible: true });
-             console.log("Review articles selector found or timeout passed without error.");
+             console.log("Waiting for at least one review article to render after aria-busy is false...");
+             await page.waitForSelector('div#pdp_comp-review section[role="feed"] article.css-15m2bcr', { timeout: 10000, visible: true });
+             console.log("At least one review article rendered.");
         } catch (reviewWaitError) {
              console.error("Error or timeout waiting for review section/articles:", reviewWaitError instanceof Error ? reviewWaitError.message : String(reviewWaitError));
         }
