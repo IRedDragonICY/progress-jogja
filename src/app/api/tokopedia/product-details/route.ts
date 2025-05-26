@@ -114,7 +114,7 @@ export async function GET(
         if (process.env.NODE_ENV === "production") {
             browser = await puppeteerCore.launch({
                 args: [...chromium.args, '--ignore-certificate-errors'],
-                executablePath: await chromium.executablePath(),
+                executablePath: await chromium.executablePath({ downloadPath: '/tmp/chromium_sparticuz' }),
                 headless: chromium.headless, // Use chromium.headless for production
             });
         } else {
