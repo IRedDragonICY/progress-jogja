@@ -113,10 +113,9 @@ export async function GET(
     try {
         if (process.env.NEXT_PUBLIC_VERCEL_ENVIRONMENT === "production") {
             browser = await puppeteerCore.launch({
-                args: chromium.args,
+                args: [...chromium.args, '--ignore-certificate-errors'],
                 executablePath: await chromium.executablePath(remoteExecutablePath),
                 headless: chromium.headless, // Use chromium.headless for production
-                ignoreHTTPSErrors: true,
             });
         } else {
             // Keep existing local development launch options
