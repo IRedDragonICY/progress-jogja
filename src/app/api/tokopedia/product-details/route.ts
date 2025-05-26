@@ -1,8 +1,8 @@
 import {NextRequest, NextResponse} from 'next/server';
 import {JSDOM} from 'jsdom';
-import puppeteer, { Browser } from 'puppeteer';
+import puppeteer, { Browser, Page } from 'puppeteer';
 import chromium from '@sparticuz/chromium-min';
-import puppeteerCore, { Browser as PuppeteerCoreBrowser } from 'puppeteer-core';
+import puppeteerCore, { Browser as PuppeteerCoreBrowser, Page as PuppeteerCorePage } from 'puppeteer-core';
 
 interface RatingBreakdown {
     star: number;
@@ -137,7 +137,7 @@ export async function GET(
               defaultViewport: { width: 1366, height: 768 }
             });
         }
-        const page = await browser.newPage();
+        const page: Page | PuppeteerCorePage = await browser.newPage();
 
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36');
         await page.setExtraHTTPHeaders({
