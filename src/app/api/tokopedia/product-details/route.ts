@@ -97,7 +97,7 @@ function extractFloatNumber(text: string | null | undefined): number | null {
     return isNaN(num) ? null : num;
 }
 
-// const remoteExecutablePath = "https://github.com/Sparticuz/chromium/releases/download/v121.0.0/chromium-v121.0.0-pack.tar";
+const remoteExecutablePath = "https://github.com/Sparticuz/chromium/releases/download/v121.0.0/chromium-v121.0.0-pack.tar";
 
 export async function GET(
     req: NextRequest
@@ -114,7 +114,7 @@ export async function GET(
         if (process.env.NODE_ENV === "production") {
             browser = await puppeteerCore.launch({
                 args: [...chromium.args, '--ignore-certificate-errors'],
-                executablePath: await chromium.executablePath({ downloadPath: '/tmp/chromium_sparticuz' }),
+                executablePath: await chromium.executablePath(remoteExecutablePath),
                 headless: chromium.headless, // Use chromium.headless for production
             });
         } else {
