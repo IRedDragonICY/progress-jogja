@@ -28,6 +28,7 @@
     "node-mocks-http": "^1.17.1",
     "puppeteer": "^24.8.0",
     "tailwindcss": "^4",
+    "@tailwindcss/postcss": "^4",
     "ts-jest": "^29.1.2",
     "ts-node": "^10.9.2",
     "typescript": "^5",
