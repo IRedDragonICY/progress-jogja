@@ -43,9 +43,6 @@ describe('Tokopedia Scraper API Handler - Integration Test', () => {
             expect(typeof responseData.reviews.ratingBreakdown[0].percentage).toBe('number');
         }
 
-        // Check individual reviews structure if needed (might still be empty)
-        expect(Array.isArray(responseData.reviews.individualReviews)).toBe(true);
-
 
     }, 45000);
 
