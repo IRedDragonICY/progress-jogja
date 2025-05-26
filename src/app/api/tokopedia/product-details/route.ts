@@ -146,7 +146,7 @@ export async function GET(
 
         await page.setRequestInterception(true);
         page.on('request', (req) => {
-            if(['image', 'stylesheet', 'font', 'media'].includes(req.resourceType())){
+            if(['stylesheet', 'font', 'media'].includes(req.resourceType())){ // 'image' has been removed
                 req.abort();
             } else {
                 req.continue();
