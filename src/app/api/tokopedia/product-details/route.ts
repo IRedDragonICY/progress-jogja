@@ -10,13 +10,13 @@ interface RatingBreakdown {
     percentage: number;
 }
 
-interface IndividualReview {
-    reviewerName: string | null;
-    reviewerAvatarUrl: string | null;
-    rating: number | null;
-    comment: string | null;
-    date: string | null;
-}
+// interface IndividualReview {
+//     reviewerName: string | null;
+//     reviewerAvatarUrl: string | null;
+//     rating: number | null;
+//     comment: string | null;
+//     date: string | null;
+// }
 
 export interface ScrapedProductData {
     product: {
@@ -38,7 +38,7 @@ export interface ScrapedProductData {
         totalReviews: number | null;
         satisfactionPercentage: number | null;
         ratingBreakdown: RatingBreakdown[];
-        individualReviews: IndividualReview[];
+        // individualReviews: IndividualReview[];
     };
 }
 
@@ -215,7 +215,7 @@ export async function GET(
                 totalReviews: null,
                 satisfactionPercentage: null,
                 ratingBreakdown: [],
-                individualReviews: [],
+                // individualReviews: [],
             },
         };
 
@@ -339,60 +339,60 @@ export async function GET(
                 });
             }
 
-            const reviewFeed = safeQuerySelector(reviewSection, '#review-feed');
-            if(reviewFeed) {
-                 const reviewArticles = safeQuerySelectorAllStrict<HTMLElement>(reviewFeed, 'article.css-15m2bcr');
-                 reviewArticles.forEach((article, index) => {
-                     const reviewerNameElement = safeQuerySelector(article, '.css-k4rf3m span.name');
-                     const reviewerName = reviewerNameElement?.textContent?.trim() ?? null;
-
-                     const reviewerAvatarElement = safeQuerySelector<HTMLImageElement>(article, '.css-k4rf3m img[alt="foto profil"]');
-                     let reviewerAvatarUrl : string | null = reviewerAvatarElement?.src ?? null;
-                     if (reviewerAvatarUrl && reviewerAvatarUrl.startsWith('data:image/svg+xml')) {
-                         const lazySrc = reviewerAvatarElement?.getAttribute('data-src') || reviewerAvatarElement?.getAttribute('data-li-lazy-src');
-                         reviewerAvatarUrl = lazySrc ?? null;
-                     }
-
-                     const ratingContainer = safeQuerySelector(article, 'div[data-testid="icnStarRating"]');
-                     let rating : number | null = null;
-                     if (ratingContainer) {
-                         const ratingSvgs = safeQuerySelectorAllStrict(ratingContainer, 'svg');
-                         rating = ratingSvgs.length > 0 ? ratingSvgs.length : null;
-                     }
-
-                     const commentElement = safeQuerySelector(article, 'span[data-testid="lblItemUlasan"]');
-                     const comment = commentElement?.textContent?.trim() ?? null;
-
-                     const dateElement = safeQuerySelector(article, '.css-1w6pe1p p.css-vqrjg4-unf-heading');
-                     const date = dateElement?.textContent?.trim() ?? null;
-
-                     if (reviewerName || comment || rating) {
-                         data.reviews.individualReviews.push({
-                             reviewerName,
-                             reviewerAvatarUrl,
-                             rating,
-                             comment,
-                             date
-                         });
-                     } else {
-                         console.warn(`Skipping review article index ${index} due to missing essential data.`);
-                     }
-                 });
-
-                 if (data.reviews.individualReviews.length > 0 && data.reviews.totalReviews === 0 && data.reviews.totalRatings !== null && data.reviews.totalRatings > 0) {
-                    const reviewCountSubtitle = safeQuerySelector(reviewSection, '[data-testid="reviewSortingSubtitle"]');
-                    if (reviewCountSubtitle?.textContent) {
-                        const match = reviewCountSubtitle.textContent.match(/dari ([\d.,]+) ulasan/);
-                        if(match && match[1]){
-                            data.reviews.totalReviews = extractNumber(match[1]);
-                        } else {
-                             data.reviews.totalReviews = data.reviews.individualReviews.length;
-                        }
-                    } else {
-                         data.reviews.totalReviews = data.reviews.individualReviews.length;
-                    }
-                 }
-            }
+            // const reviewFeed = safeQuerySelector(reviewSection, '#review-feed');
+            // if(reviewFeed) {
+            //      const reviewArticles = safeQuerySelectorAllStrict<HTMLElement>(reviewFeed, 'article.css-15m2bcr');
+            //      reviewArticles.forEach((article, index) => {
+            //          const reviewerNameElement = safeQuerySelector(article, '.css-k4rf3m span.name');
+            //          const reviewerName = reviewerNameElement?.textContent?.trim() ?? null;
+            //
+            //          const reviewerAvatarElement = safeQuerySelector<HTMLImageElement>(article, '.css-k4rf3m img[alt="foto profil"]');
+            //          let reviewerAvatarUrl : string | null = reviewerAvatarElement?.src ?? null;
+            //          if (reviewerAvatarUrl && reviewerAvatarUrl.startsWith('data:image/svg+xml')) {
+            //              const lazySrc = reviewerAvatarElement?.getAttribute('data-src') || reviewerAvatarElement?.getAttribute('data-li-lazy-src');
+            //              reviewerAvatarUrl = lazySrc ?? null;
+            //          }
+            //
+            //          const ratingContainer = safeQuerySelector(article, 'div[data-testid="icnStarRating"]');
+            //          let rating : number | null = null;
+            //          if (ratingContainer) {
+            //              const ratingSvgs = safeQuerySelectorAllStrict(ratingContainer, 'svg');
+            //              rating = ratingSvgs.length > 0 ? ratingSvgs.length : null;
+            //          }
+            //
+            //          const commentElement = safeQuerySelector(article, 'span[data-testid="lblItemUlasan"]');
+            //          const comment = commentElement?.textContent?.trim() ?? null;
+            //
+            //          const dateElement = safeQuerySelector(article, '.css-1w6pe1p p.css-vqrjg4-unf-heading');
+            //          const date = dateElement?.textContent?.trim() ?? null;
+            //
+            //          if (reviewerName || comment || rating) {
+            //              data.reviews.individualReviews.push({
+            //                  reviewerName,
+            //                  reviewerAvatarUrl,
+            //                  rating,
+            //                  comment,
+            //                  date
+            //              });
+            //          } else {
+            //              console.warn(`Skipping review article index ${index} due to missing essential data.`);
+            //          }
+            //      });
+            //
+            //      if (data.reviews.individualReviews.length > 0 && data.reviews.totalReviews === 0 && data.reviews.totalRatings !== null && data.reviews.totalRatings > 0) {
+            //         const reviewCountSubtitle = safeQuerySelector(reviewSection, '[data-testid="reviewSortingSubtitle"]');
+            //         if (reviewCountSubtitle?.textContent) {
+            //             const match = reviewCountSubtitle.textContent.match(/dari ([\d.,]+) ulasan/);
+            //             if(match && match[1]){
+            //                 data.reviews.totalReviews = extractNumber(match[1]);
+            //             } else {
+            //                  data.reviews.totalReviews = data.reviews.individualReviews.length;
+            //             }
+            //         } else {
+            //              data.reviews.totalReviews = data.reviews.individualReviews.length;
+            //         }
+            //      }
+            // }
         }
 
         return NextResponse.json(data, { status: 200 });
