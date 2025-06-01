@@ -1,37 +1,81 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
-import { auth, signOut, onAuthStateChanged } from "@/lib/firebase";
+import { auth, signOut, onAuthStateChanged, supabase } from "@/lib/supabase";
+import type { User } from "@supabase/supabase-js";
 
 export default function AdminPage() {
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        router.push("/login").catch((err) => {
-          console.error("Navigation error:", err);
-        });
-      } else {
-        setLoading(false);
-      }
+  const redirectToLogin = useCallback(() => {
+    router.push("/login").catch((err) => {
+      console.error("Navigation error:", err);
     });
-
-    return () => unsubscribe();
   }, [router]);
 
-  const handleLogout = async () => {
+  const checkSession = useCallback(async (): Promise<boolean> => {
     try {
-      await signOut(auth);
+      const { data: { session } } = await supabase.auth.getSession();
 
-      // Clear the authentication cookie
-      document.cookie = "firebase-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      const currentUser = session?.user || auth.currentUser;
 
+      if (currentUser) {
+        setUser(currentUser);
+        setLoading(false);
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error("Session check error:", error);
+      return false;
+    }
+  }, []);
+
+  useEffect(() => {
+    let unsubscribe: (() => void) | null = null;
+    let timeoutId: NodeJS.Timeout | null = null;
+
+    const initAuth = async () => {
+      const hasSession = await checkSession();
+
+      if (hasSession) return;
+
+      unsubscribe = onAuthStateChanged(auth, (authUser: User | null) => {
+        if (authUser) {
+          setUser(authUser);
+          setLoading(false);
+        } else {
+          redirectToLogin();
+        }
+      });
+
+      timeoutId = setTimeout(async () => {
+        if (loading && !(await checkSession())) {
+          console.warn("Auth timeout, redirecting to login");
+          redirectToLogin();
+        }
+      }, 5000);
+    };
+
+    initAuth();
+
+    return () => {
+      unsubscribe?.();
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [checkSession, redirectToLogin, loading]);
+
+  const handleLogout = useCallback(async () => {
+    try {
+      await signOut();
+      document.cookie = "supabase-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
       await router.push("/login");
     } catch (error) {
       console.error("Logout error:", error);
     }
-  };
+  }, [router]);
 
   if (loading) {
     return (
@@ -55,10 +99,10 @@ export default function AdminPage() {
         </div>
 
         <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4">Welcome to Admin Area</h2>
-          <p className="text-gray-600">
-            This is a placeholder admin page.
-          </p>
+          <h2 className="text-xl font-semibold mb-4">
+            Welcome to Admin Area{user?.email ? `, ${user.email}` : ""}
+          </h2>
+          <p className="text-gray-600">This is a placeholder admin page.</p>
         </div>
       </div>
     </div>
