@@ -4,7 +4,7 @@ import type { ScrapedProductData } from './route';
 
 describe('Tokopedia Scraper API Handler - Integration Test', () => {
 
-    const liveTestUrl = 'https://www.tokopedia.com/xiaomi/poco-f7-pro-12g-512g-snapdragon-8-gen-3-6000mah-2k-120hz-amoled-50mp-camera-ois-official-store-1731065976444061436';
+    const liveTestUrl = 'https://www.tokopedia.com/xiaomi/poco-x7-pro-5g-dimensity-8400-ultra-6000mah-90w-hypercharge-crystalres-1-5k-amoled-official-store-1731560055098738201';
 
     it('should fetch and scrape data from the live Tokopedia URL', async () => {
 

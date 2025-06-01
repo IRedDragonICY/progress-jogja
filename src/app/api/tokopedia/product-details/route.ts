@@ -10,14 +10,6 @@ interface RatingBreakdown {
     percentage: number;
 }
 
-// interface IndividualReview {
-//     reviewerName: string | null;
-//     reviewerAvatarUrl: string | null;
-//     rating: number | null;
-//     comment: string | null;
-//     date: string | null;
-// }
-
 export interface ScrapedProductData {
     product: {
         title: string | null;
@@ -38,7 +30,6 @@ export interface ScrapedProductData {
         totalReviews: number | null;
         satisfactionPercentage: number | null;
         ratingBreakdown: RatingBreakdown[];
-        // individualReviews: IndividualReview[];
     };
 }
 
@@ -115,12 +106,11 @@ export async function GET(
             browser = await puppeteerCore.launch({
                 args: [...chromium.args, '--ignore-certificate-errors'],
                 executablePath: await chromium.executablePath(remoteExecutablePath),
-                headless: chromium.headless, // Use chromium.headless for production
+                headless: chromium.headless,
             });
         } else {
-            // Keep existing local development launch options
             browser = await puppeteer.launch({
-              headless: true, // Or false for local debugging
+              headless: true,
               args: [
                   '--no-sandbox',
                   '--disable-setuid-sandbox',
@@ -146,7 +136,7 @@ export async function GET(
 
         await page.setRequestInterception(true);
         page.on('request', (req) => {
-            if(['stylesheet', 'font', 'media'].includes(req.resourceType())){ // 'image' has been removed
+            if(['stylesheet', 'font', 'media'].includes(req.resourceType())){
                 req.abort();
             } else {
                 req.continue();
@@ -157,33 +147,9 @@ export async function GET(
 
         await page.waitForSelector('body', { timeout: 10000 });
 
-        try {
-             const reviewSectionSelector = '#pdp_comp-review';
-             await page.waitForSelector(reviewSectionSelector, { timeout: 15000 });
-
-             const scrollIntoViewInPage = (selector: string): void => {
-                 const el = document.querySelector(selector);
-                 el?.scrollIntoView({ behavior: 'auto', block: 'center' });
-             };
-
-             await (page as Page).evaluate(scrollIntoViewInPage, reviewSectionSelector);
-
-             console.log("Waiting for review feed aria-busy to be 'false'...");
-             await (page as Page).waitForFunction(() => {
-                 const reviewFeed = document.querySelector('div#pdp_comp-review section[role="feed"]');
-                 return reviewFeed?.getAttribute('aria-busy') === 'false';
-             }, { timeout: 30000 }); // 30 second timeout
-             console.log("Review feed aria-busy is 'false'.");
-
-             console.log("Waiting for at least one review article to render after aria-busy is false...");
-             await page.waitForSelector('div#pdp_comp-review section[role="feed"] article.css-15m2bcr', { timeout: 10000, visible: true });
-             console.log("At least one review article rendered.");
-        } catch (reviewWaitError) {
-             console.error("Error or timeout waiting for review section/articles:", reviewWaitError instanceof Error ? reviewWaitError.message : String(reviewWaitError));
-        }
 
         console.log("Final short delay before getting page content...");
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Increased to 2000ms
+        await new Promise(resolve => setTimeout(resolve, 2000));
         console.log("Finished final delay.");
 
         const html = await page.content();
@@ -215,7 +181,6 @@ export async function GET(
                 totalReviews: null,
                 satisfactionPercentage: null,
                 ratingBreakdown: [],
-                // individualReviews: [],
             },
         };
 
@@ -338,61 +303,6 @@ export async function GET(
                     }
                 });
             }
-
-            // const reviewFeed = safeQuerySelector(reviewSection, '#review-feed');
-            // if(reviewFeed) {
-            //      const reviewArticles = safeQuerySelectorAllStrict<HTMLElement>(reviewFeed, 'article.css-15m2bcr');
-            //      reviewArticles.forEach((article, index) => {
-            //          const reviewerNameElement = safeQuerySelector(article, '.css-k4rf3m span.name');
-            //          const reviewerName = reviewerNameElement?.textContent?.trim() ?? null;
-            //
-            //          const reviewerAvatarElement = safeQuerySelector<HTMLImageElement>(article, '.css-k4rf3m img[alt="foto profil"]');
-            //          let reviewerAvatarUrl : string | null = reviewerAvatarElement?.src ?? null;
-            //          if (reviewerAvatarUrl && reviewerAvatarUrl.startsWith('data:image/svg+xml')) {
-            //              const lazySrc = reviewerAvatarElement?.getAttribute('data-src') || reviewerAvatarElement?.getAttribute('data-li-lazy-src');
-            //              reviewerAvatarUrl = lazySrc ?? null;
-            //          }
-            //
-            //          const ratingContainer = safeQuerySelector(article, 'div[data-testid="icnStarRating"]');
-            //          let rating : number | null = null;
-            //          if (ratingContainer) {
-            //              const ratingSvgs = safeQuerySelectorAllStrict(ratingContainer, 'svg');
-            //              rating = ratingSvgs.length > 0 ? ratingSvgs.length : null;
-            //          }
-            //
-            //          const commentElement = safeQuerySelector(article, 'span[data-testid="lblItemUlasan"]');
-            //          const comment = commentElement?.textContent?.trim() ?? null;
-            //
-            //          const dateElement = safeQuerySelector(article, '.css-1w6pe1p p.css-vqrjg4-unf-heading');
-            //          const date = dateElement?.textContent?.trim() ?? null;
-            //
-            //          if (reviewerName || comment || rating) {
-            //              data.reviews.individualReviews.push({
-            //                  reviewerName,
-            //                  reviewerAvatarUrl,
-            //                  rating,
-            //                  comment,
-            //                  date
-            //              });
-            //          } else {
-            //              console.warn(`Skipping review article index ${index} due to missing essential data.`);
-            //          }
-            //      });
-            //
-            //      if (data.reviews.individualReviews.length > 0 && data.reviews.totalReviews === 0 && data.reviews.totalRatings !== null && data.reviews.totalRatings > 0) {
-            //         const reviewCountSubtitle = safeQuerySelector(reviewSection, '[data-testid="reviewSortingSubtitle"]');
-            //         if (reviewCountSubtitle?.textContent) {
-            //             const match = reviewCountSubtitle.textContent.match(/dari ([\d.,]+) ulasan/);
-            //             if(match && match[1]){
-            //                 data.reviews.totalReviews = extractNumber(match[1]);
-            //             } else {
-            //                  data.reviews.totalReviews = data.reviews.individualReviews.length;
-            //             }
-            //         } else {
-            //              data.reviews.totalReviews = data.reviews.individualReviews.length;
-            //         }
-            //      }
-            // }
         }
 
         return NextResponse.json(data, { status: 200 });
