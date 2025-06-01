@@ -1,6 +1,13 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
+import { 
+  getAuth, 
+  signInWithEmailAndPassword, 
+  sendPasswordResetEmail,
+  signOut,
+  onAuthStateChanged
+} from "firebase/auth";
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -18,5 +25,15 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 // Analytics may not work on the server side, so we need to check if window is defined
 const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
+// Initialize Firebase Authentication
+const auth = getAuth(app);
 
-export { app, analytics };
+export {
+  app,
+  analytics,
+  auth,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+  signOut,
+  onAuthStateChanged
+};
