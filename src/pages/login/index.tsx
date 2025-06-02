@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/router";
-import { signInWithEmailAndPassword, sendPasswordResetEmail, auth } from "@/lib/firebase";
-import { FirebaseError } from "firebase/app";
+import { signInWithEmailAndPassword, sendPasswordResetEmail, auth } from "@/lib/supabase";
+import { AuthError } from "@supabase/supabase-js";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -25,38 +25,37 @@ export default function LoginPage() {
     setSuccess("");
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const idToken = await userCredential.user.getIdToken();
-      document.cookie = `firebase-auth-token=${idToken}; path=/; max-age=${60 * 60 * 24 * 7}; secure; samesite=strict`;
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      const session = result.session;
+      document.cookie = `supabase-auth-token=${session.access_token}; path=/; max-age=${60 * 60 * 24 * 7}; secure; samesite=strict`;
       await router.push("/admin");
-    } catch (error) {
-      console.error("Login error:", error);
-      if (error instanceof FirebaseError) {
-        switch (error.code) {
-          case "auth/user-not-found":
-            setError("No user found with this email address.");
+    } catch (caughtError: unknown) {
+      console.error("Login error:", caughtError);
+      let messageToShow = "An unexpected error occurred. Please try again.";
+      if (caughtError instanceof AuthError) {
+        switch (caughtError.message) {
+          case "Invalid login credentials":
+            messageToShow = "Invalid email or password.";
             break;
-          case "auth/wrong-password":
-            setError("Incorrect password.");
+          case "Email not confirmed":
+            messageToShow = "Please confirm your email address before logging in.";
             break;
-          case "auth/invalid-email":
-            setError("Invalid email address.");
+          case "Invalid email":
+            messageToShow = "Invalid email address.";
             break;
-          case "auth/user-disabled":
-            setError("This account has been disabled.");
+          case "User is disabled":
+            messageToShow = "This account has been disabled.";
             break;
-          case "auth/too-many-requests":
-            setError("Too many failed attempts. Please try again later.");
-            break;
-          case "auth/invalid-credential":
-            setError("Invalid email or password.");
+          case "Rate limit exceeded":
+            messageToShow = "Too many failed attempts. Please try again later.";
             break;
           default:
-            setError("Failed to login. Please check your credentials.");
+            messageToShow = caughtError.message || "Failed to login. Please check your credentials.";
         }
-      } else {
-        setError("An unexpected error occurred. Please try again.");
+      } else if (caughtError instanceof Error) {
+         messageToShow = caughtError.message || "Failed to login. Please check your credentials.";
       }
+      setError(messageToShow);
     } finally {
       setLoading(false);
     }
@@ -76,25 +75,27 @@ export default function LoginPage() {
         setResetEmail("");
         setSuccess("");
       }, 3000);
-    } catch (error) {
-      console.error("Reset password error:", error);
-      if (error instanceof FirebaseError) {
-        switch (error.code) {
-          case "auth/user-not-found":
-            setError("No user found with this email address.");
+    } catch (caughtError: unknown) {
+      console.error("Reset password error:", caughtError);
+      let messageToShow = "An unexpected error occurred. Please try again.";
+      if (caughtError instanceof AuthError) {
+        switch (caughtError.message) {
+          case "Email not found":
+            messageToShow = "No user found with this email address.";
             break;
-          case "auth/invalid-email":
-            setError("Invalid email address.");
+          case "Invalid email":
+            messageToShow = "Invalid email address.";
             break;
-          case "auth/too-many-requests":
-            setError("Too many reset attempts. Please try again later.");
+          case "Rate limit exceeded":
+            messageToShow = "Too many reset attempts. Please try again later.";
             break;
           default:
-            setError("Failed to send reset email. Please try again.");
+            messageToShow = caughtError.message || "Failed to send reset email. Please try again.";
         }
-      } else {
-        setError("An unexpected error occurred. Please try again.");
+      } else if (caughtError instanceof Error) {
+         messageToShow = caughtError.message || "Failed to send reset email. Please try again.";
       }
+      setError(messageToShow);
     } finally {
       setResetLoading(false);
     }
@@ -402,7 +403,7 @@ export default function LoginPage() {
               <svg className="w-4 h-4 mr-2 text-green-400" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
               </svg>
-              Secure admin access powered by Firebase
+              Secure admin access powered by Supabase
             </p>
           </div>
         </div>
@@ -501,3 +502,6 @@ export default function LoginPage() {
     </div>
   );
 }
+
+
+
