@@ -1,507 +1,458 @@
-import React, { useState } from "react";
-import { useRouter } from "next/router";
-import { signInWithEmailAndPassword, sendPasswordResetEmail, auth } from "@/lib/supabase";
-import { AuthError } from "@supabase/supabase-js";
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
+import { supabase } from '@/lib/supabase';
+import * as Form from '@radix-ui/react-form';
+import * as Dialog from '@radix-ui/react-dialog';
+import * as Separator from '@radix-ui/react-separator';
+import {
+  XMarkIcon,
+  EyeIcon,
+  EyeSlashIcon,
+  EnvelopeIcon,
+  LockClosedIcon,
+  ShieldCheckIcon,
+  ExclamationTriangleIcon,
+  CheckCircleIcon
+} from '@heroicons/react/24/outline';
+
+interface AuthError {
+  message: string;
+}
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [resetLoading, setResetLoading] = useState(false);
-  const [emailFocused, setEmailFocused] = useState(false);
-  const [passwordFocused, setPasswordFocused] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [resetEmail, setResetEmail] = useState("");
-  const [resetEmailFocused, setResetEmailFocused] = useState(false);
   const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
-  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+  // Forgot Password Modal States
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [isSendingReset, setIsSendingReset] = useState(false);
+  const [resetError, setResetError] = useState('');
+  const [resetSuccess, setResetSuccess] = useState('');
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (session?.user && !error) {
+          router.replace('/admin').catch(console.error);
+        } else {
+          setLoading(false);
+        }
+      } catch (e) {
+        console.error('Error checking auth session:', e);
+        setLoading(false);
+      }
+    };
+
+    checkAuth().catch(console.error);
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session?.user) {
+           router.replace('/admin').catch(console.error);
+        } else {
+           setLoading(false);
+        }
+    });
+
+    return () => {
+        subscription.unsubscribe();
+    };
+  }, [router]);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError("");
-    setSuccess("");
+    setIsSubmitting(true);
+    setError('');
+    setSuccess('');
 
     try {
-      const result = await signInWithEmailAndPassword(auth, email, password);
-      const session = result.session;
-      document.cookie = `supabase-auth-token=${session.access_token}; path=/; max-age=${60 * 60 * 24 * 7}; secure; samesite=strict`;
-      await router.push("/admin");
-    } catch (caughtError: unknown) {
-      console.error("Login error:", caughtError);
-      let messageToShow = "An unexpected error occurred. Please try again.";
-      if (caughtError instanceof AuthError) {
-        switch (caughtError.message) {
-          case "Invalid login credentials":
-            messageToShow = "Invalid email or password.";
-            break;
-          case "Email not confirmed":
-            messageToShow = "Please confirm your email address before logging in.";
-            break;
-          case "Invalid email":
-            messageToShow = "Invalid email address.";
-            break;
-          case "User is disabled":
-            messageToShow = "This account has been disabled.";
-            break;
-          case "Rate limit exceeded":
-            messageToShow = "Too many failed attempts. Please try again later.";
-            break;
-          default:
-            messageToShow = caughtError.message || "Failed to login. Please check your credentials.";
-        }
-      } else if (caughtError instanceof Error) {
-         messageToShow = caughtError.message || "Failed to login. Please check your credentials.";
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: password,
+      });
+
+      if (error) {
+        console.error('Login error:', error);
+        setError(`Login failed: ${error.message}`);
+      } else if (data.user) {
+        setSuccess('Login successful! Redirecting...');
+        setTimeout(() => {
+          router.replace('/admin');
+        }, 1000);
       }
-      setError(messageToShow);
+    } catch (error) {
+      const authError = error as AuthError;
+      console.error('Unexpected login error:', authError);
+      setError(`An unexpected error occurred: ${authError.message}`);
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  const handleForgotPassword = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    setResetLoading(true);
-    setError("");
-    setSuccess("");
+    setIsSendingReset(true);
+    setResetError('');
+    setResetSuccess('');
 
     try {
-      await sendPasswordResetEmail(auth, resetEmail);
-      setSuccess("Password reset email sent! Check your inbox.");
-      setTimeout(() => {
-        setShowForgotPassword(false);
-        setResetEmail("");
-        setSuccess("");
-      }, 3000);
-    } catch (caughtError: unknown) {
-      console.error("Reset password error:", caughtError);
-      let messageToShow = "An unexpected error occurred. Please try again.";
-      if (caughtError instanceof AuthError) {
-        switch (caughtError.message) {
-          case "Email not found":
-            messageToShow = "No user found with this email address.";
-            break;
-          case "Invalid email":
-            messageToShow = "Invalid email address.";
-            break;
-          case "Rate limit exceeded":
-            messageToShow = "Too many reset attempts. Please try again later.";
-            break;
-          default:
-            messageToShow = caughtError.message || "Failed to send reset email. Please try again.";
-        }
-      } else if (caughtError instanceof Error) {
-         messageToShow = caughtError.message || "Failed to send reset email. Please try again.";
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) {
+        setResetError(`Error: ${error.message}`);
+      } else {
+        setResetSuccess('Password reset email sent! Check your inbox.');
+        setTimeout(() => {
+          setForgotPasswordOpen(false);
+          setForgotEmail('');
+          setResetSuccess('');
+        }, 2000);
       }
-      setError(messageToShow);
+    } catch (error) {
+      const authError = error as AuthError;
+      setResetError(`Unexpected error: ${authError.message}`);
     } finally {
-      setResetLoading(false);
+      setIsSendingReset(false);
     }
   };
 
-  const openForgotPassword = () => {
-    setShowForgotPassword(true);
-    setResetEmail(email);
-    setError("");
-    setSuccess("");
-  };
-
-  const closeForgotPassword = () => {
-    setShowForgotPassword(false);
-    setResetEmail("");
-    setError("");
-    setSuccess("");
-  };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-zinc-900 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Dynamic Background Elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-500/10 to-purple-600/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-indigo-600/5 to-violet-600/5 rounded-full blur-3xl animate-spin slow-spin"></div>
-      </div>
-
-      {/* Animated Grid Pattern */}
-      <div className="absolute inset-0 opacity-[0.02]">
-        <div className="grid-pattern"></div>
-      </div>
-
-      {/* Forgot Password Modal */}
-      {showForgotPassword && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-gray-900/90 backdrop-blur-2xl rounded-3xl shadow-2xl border border-gray-700/30 p-8 w-full max-w-md transform transition-all duration-300 animate-scale-in">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                Reset Password
-              </h2>
-              <button
-                onClick={closeForgotPassword}
-                className="text-gray-400 hover:text-gray-300 transition-colors duration-200 hover:rotate-90 transform"
-                disabled={resetLoading}
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-gray-900 to-slate-800 animate-gradient-x">
+        <div className="text-center space-y-6">
+          <div className="relative">
+            <div className="animate-spin rounded-full h-20 w-20 border-4 border-slate-700 border-t-red-500 mx-auto"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <ShieldCheckIcon className="w-8 h-8 text-red-500" />
             </div>
-
-            <p className="text-gray-400 text-sm mb-6">
-              Enter your email address and we&apos;ll send you a link to reset your password.
-            </p>
-
-            {/* Success Message */}
-            {success && (
-              <div className="mb-6 p-4 bg-green-900/30 border border-green-700/50 rounded-xl transform transition-all duration-300 backdrop-blur-sm">
-                <div className="flex items-center">
-                  <svg className="w-5 h-5 text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span className="text-green-300 text-sm font-medium">{success}</span>
-                </div>
-              </div>
-            )}
-
-            {/* Error Message */}
-            {error && (
-              <div className="mb-6 p-4 bg-red-900/30 border border-red-700/50 rounded-xl transform transition-all duration-300 animate-shake backdrop-blur-sm">
-                <div className="flex items-center">
-                  <svg className="w-5 h-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
-                  <span className="text-red-300 text-sm font-medium">{error}</span>
-                </div>
-              </div>
-            )}
-
-            <form onSubmit={handleForgotPassword} className="space-y-6">
-              {/* Reset Email Field */}
-              <div className="relative group">
-                <div className="relative">
-                  <input
-                    id="reset-email"
-                    type="email"
-                    value={resetEmail}
-                    onChange={(e) => setResetEmail(e.target.value)}
-                    onFocus={() => setResetEmailFocused(true)}
-                    onBlur={() => setResetEmailFocused(false)}
-                    className="peer w-full px-4 py-4 bg-gray-800/50 border border-gray-600/50 rounded-2xl focus:border-blue-500 focus:bg-gray-800/70 transition-all duration-300 outline-none placeholder-transparent text-white backdrop-blur-sm hover:border-gray-500/60"
-                    placeholder="Email"
-                    required
-                    disabled={resetLoading}
-                    autoComplete="email"
-                  />
-                  <label
-                    htmlFor="reset-email"
-                    className={`absolute left-4 transition-all duration-300 pointer-events-none
-                      ${(resetEmailFocused || resetEmail)
-                        ? '-top-2 text-xs bg-gray-900 px-2 text-blue-400 font-medium'
-                        : 'top-4 text-gray-400'
-                      }
-                    `}
-                  >
-                    Email Address
-                  </label>
-                  <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-blue-500 to-violet-500 transform scale-x-0 peer-focus:scale-x-100 transition-transform duration-300 rounded-full"></div>
-                </div>
-              </div>
-
-              {/* Reset Button */}
-              <button
-                type="submit"
-                disabled={resetLoading || !resetEmail}
-                className="group relative w-full py-4 px-6 bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl hover:shadow-emerald-500/25 transform transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:hover:scale-100 overflow-hidden backdrop-blur-sm"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-
-                <div className="relative flex items-center justify-center">
-                  {resetLoading ? (
-                    <>
-                      <div className="relative">
-                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                      </div>
-                      <span className="loading-dots">Sending Reset Email</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Send Reset Email</span>
-                      <svg className="w-5 h-5 ml-2 transform group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                      </svg>
-                    </>
-                  )}
-                </div>
-              </button>
-            </form>
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-2xl font-bold text-white">Verifying Authentication</h1>
+            <p className="text-slate-400">Please wait while we check your session...</p>
           </div>
         </div>
-      )}
+      </div>
+    );
+  }
 
-      <div className="relative w-full max-w-md">
-        {/* Main Card */}
-        <div className="bg-gray-900/70 backdrop-blur-2xl rounded-3xl shadow-2xl border border-gray-700/30 p-8 transform transition-all duration-500 hover:shadow-3xl hover:scale-[1.02] hover:border-gray-600/40">
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-animated relative overflow-hidden">
+      {/* Dynamic Background decorative elements */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-red-900/20 via-transparent to-transparent animate-pulse"></div>
+      <div className="absolute top-0 left-0 w-72 h-72 bg-red-500/10 rounded-full blur-3xl animate-float"></div>
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-float-delayed"></div>
+      <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl animate-bounce-slow"></div>
+
+      <div className="relative w-full max-w-md z-10">
+        <div className="bg-gray-900/90 backdrop-blur-xl rounded-3xl border border-gray-700/50 shadow-2xl shadow-black/50 p-8 space-y-8">
           {/* Header */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-violet-600 rounded-2xl mb-4 shadow-lg transform transition-transform duration-300 hover:rotate-12 hover:shadow-blue-500/25">
-              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
+          <div className="text-center space-y-4">
+            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-red-500 to-red-700 rounded-2xl flex items-center justify-center shadow-lg shadow-red-500/30">
+              <ShieldCheckIcon className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent mb-2">
-              Welcome Back
-            </h1>
-            <p className="text-gray-400 text-sm">Sign in to your admin account</p>
+            <div className="space-y-2">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-red-400 via-red-500 to-red-600 bg-clip-text text-transparent">
+                Welcome Back
+              </h1>
+              <p className="text-slate-400 text-sm">
+                Sign in to access your admin dashboard
+              </p>
+            </div>
           </div>
 
-          {/* Error Message */}
-          {error && !showForgotPassword && (
-            <div className="mb-6 p-4 bg-red-900/30 border border-red-700/50 rounded-xl transform transition-all duration-300 animate-shake backdrop-blur-sm">
-              <div className="flex items-center">
-                <svg className="w-5 h-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-                <span className="text-red-300 text-sm font-medium">{error}</span>
-              </div>
+          {/* Error/Success Messages */}
+          {error && (
+            <div className="bg-red-900/50 border border-red-500/50 rounded-xl p-4 flex items-start gap-3">
+              <ExclamationTriangleIcon className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
+              <div className="text-red-300 text-sm leading-relaxed">{error}</div>
             </div>
           )}
 
-          {/* Form */}
-          <form onSubmit={handleLogin} className="space-y-6">
-            {/* Email Field */}
-            <div className="relative group">
-              <div className="relative">
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onFocus={() => setEmailFocused(true)}
-                  onBlur={() => setEmailFocused(false)}
-                  className="peer w-full px-4 py-4 bg-gray-800/50 border border-gray-600/50 rounded-2xl focus:border-blue-500 focus:bg-gray-800/70 transition-all duration-300 outline-none placeholder-transparent text-white backdrop-blur-sm hover:border-gray-500/60"
-                  placeholder="Email"
-                  required
-                  disabled={loading}
-                  autoComplete="email"
-                />
-                <label
-                  htmlFor="email"
-                  className={`absolute left-4 transition-all duration-300 pointer-events-none
-                    ${(emailFocused || email)
-                      ? '-top-2 text-xs bg-gray-900 px-2 text-blue-400 font-medium'
-                      : 'top-4 text-gray-400'
-                    }
-                    peer-autofill:-top-2 peer-autofill:text-xs peer-autofill:bg-gray-900 peer-autofill:px-2 peer-autofill:text-blue-400 peer-autofill:font-medium
-                  `}
-                >
-                  Email Address
-                </label>
-                <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-blue-500 to-violet-500 transform scale-x-0 peer-focus:scale-x-100 transition-transform duration-300 rounded-full"></div>
-              </div>
+          {success && (
+            <div className="bg-green-900/50 border border-green-500/50 rounded-xl p-4 flex items-start gap-3">
+              <CheckCircleIcon className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
+              <div className="text-green-300 text-sm leading-relaxed">{success}</div>
             </div>
+          )}
+
+          {/* Login Form */}
+          <Form.Root onSubmit={handleLogin} className="space-y-6">
+            {/* Email Field */}
+            <Form.Field name="email" className="space-y-3">
+              <Form.Label className="block text-sm font-semibold text-red-400">
+                Email Address
+              </Form.Label>
+              <div className="relative">
+                <EnvelopeIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Form.Control asChild>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full bg-gray-800/60 border border-gray-600/50 rounded-2xl pl-12 pr-4 py-4 text-white placeholder-gray-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 focus:outline-none transition-all duration-300 hover:border-gray-500/70"
+                    placeholder="admin@example.com"
+                  />
+                </Form.Control>
+              </div>
+              <Form.Message match="valueMissing" className="text-red-400 text-sm flex items-center gap-1">
+                <XMarkIcon className="w-4 h-4" />
+                Email address is required
+              </Form.Message>
+              <Form.Message match="typeMismatch" className="text-red-400 text-sm flex items-center gap-1">
+                <XMarkIcon className="w-4 h-4" />
+                Please enter a valid email address
+              </Form.Message>
+            </Form.Field>
 
             {/* Password Field */}
-            <div className="relative group">
+            <Form.Field name="password" className="space-y-3">
+              <Form.Label className="block text-sm font-semibold text-red-400">
+                Password
+              </Form.Label>
               <div className="relative">
-                <input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onFocus={() => setPasswordFocused(true)}
-                  onBlur={() => setPasswordFocused(false)}
-                  className="peer w-full px-4 py-4 pr-12 bg-gray-800/50 border border-gray-600/50 rounded-2xl focus:border-blue-500 focus:bg-gray-800/70 transition-all duration-300 outline-none placeholder-transparent text-white backdrop-blur-sm hover:border-gray-500/60"
-                  placeholder="Password"
-                  required
-                  disabled={loading}
-                  autoComplete="current-password"
-                />
-                <label
-                  htmlFor="password"
-                  className={`absolute left-4 transition-all duration-300 pointer-events-none
-                    ${(passwordFocused || password)
-                      ? '-top-2 text-xs bg-gray-900 px-2 text-blue-400 font-medium'
-                      : 'top-4 text-gray-400'
-                    }
-                    peer-autofill:-top-2 peer-autofill:text-xs peer-autofill:bg-gray-900 peer-autofill:px-2 peer-autofill:text-blue-400 peer-autofill:font-medium
-                  `}
-                >
-                  Password
-                </label>
+                <LockClosedIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Form.Control asChild>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="w-full bg-gray-800/60 border border-gray-600/50 rounded-2xl pl-12 pr-12 py-4 text-white placeholder-gray-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 focus:outline-none transition-all duration-300 hover:border-gray-500/70"
+                    placeholder="••••••••••••"
+                  />
+                </Form.Control>
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-4 text-gray-400 hover:text-gray-300 transition-colors duration-200 hover:scale-110 transform"
-                  disabled={loading}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
                 >
                   {showPassword ? (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L8.464 8.464M20.5 20.5l-12-12" />
-                    </svg>
+                    <EyeSlashIcon className="w-5 h-5" />
                   ) : (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
+                    <EyeIcon className="w-5 h-5" />
                   )}
                 </button>
-                <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-blue-500 to-violet-500 transform scale-x-0 peer-focus:scale-x-100 transition-transform duration-300 rounded-full"></div>
               </div>
-            </div>
+              <Form.Message match="valueMissing" className="text-red-400 text-sm flex items-center gap-1">
+                <XMarkIcon className="w-4 h-4" />
+                Password is required
+              </Form.Message>
+            </Form.Field>
 
             {/* Forgot Password Link */}
             <div className="flex justify-end">
               <button
                 type="button"
-                onClick={openForgotPassword}
-                className="text-sm text-blue-400 hover:text-blue-300 transition-colors duration-200 hover:underline"
-                disabled={loading}
+                onClick={() => setForgotPasswordOpen(true)}
+                className="text-sm text-red-400 hover:text-red-300 transition-colors font-medium hover:underline"
               >
                 Forgot your password?
               </button>
             </div>
 
             {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading || !email || !password}
-              className="group relative w-full py-4 px-6 bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl hover:shadow-blue-500/25 transform transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:hover:scale-100 overflow-hidden backdrop-blur-sm"
-            >
-              {/* Shimmer Effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-
-              <div className="relative flex items-center justify-center">
-                {loading ? (
+            <Form.Submit asChild>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full px-6 py-4 bg-gradient-to-r from-red-600 via-red-500 to-red-600 hover:from-red-700 hover:via-red-600 hover:to-red-700 text-white font-bold rounded-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-xl shadow-red-500/30 hover:shadow-red-500/40 hover:scale-[1.02] active:scale-[0.98]"
+              >
+                {isSubmitting ? (
                   <>
-                    <div className="relative">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                    </div>
-                    <span className="loading-dots">Signing In</span>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Signing in...</span>
                   </>
                 ) : (
                   <>
+                    <ShieldCheckIcon className="w-5 h-5" />
                     <span>Sign In</span>
-                    <svg className="w-5 h-5 ml-2 transform group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
                   </>
                 )}
-              </div>
-            </button>
-          </form>
+              </button>
+            </Form.Submit>
+          </Form.Root>
+
+          <Separator.Root className="bg-gray-700/50 h-px" />
 
           {/* Footer */}
-          <div className="mt-8 text-center">
-            <p className="text-gray-400 text-sm flex items-center justify-center">
-              <svg className="w-4 h-4 mr-2 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-              </svg>
-              Secure admin access powered by Supabase
-            </p>
+          <div className="text-center text-sm text-gray-400">
+            <p>Protected by enterprise-grade security</p>
           </div>
         </div>
-
-        {/* Floating Elements */}
-        <div className="absolute -z-10 top-4 left-4 w-8 h-8 bg-blue-500/20 rounded-full blur-sm animate-bounce delay-300"></div>
-        <div className="absolute -z-10 bottom-4 right-4 w-6 h-6 bg-violet-500/20 rounded-full blur-sm animate-bounce delay-700"></div>
-        <div className="absolute -z-10 top-1/2 -left-8 w-4 h-4 bg-emerald-500/20 rounded-full blur-sm animate-bounce delay-1000"></div>
       </div>
 
-      <style jsx>{`
+      {/* Forgot Password Modal */}
+      <Dialog.Root open={forgotPasswordOpen} onOpenChange={setForgotPasswordOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="bg-black/80 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50" />
+          <Dialog.Content className="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] fixed left-[50%] top-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%] bg-gray-900/95 backdrop-blur-xl border border-gray-700/50 rounded-3xl shadow-2xl shadow-black/50 p-8 duration-300">
+            <div className="space-y-6">
+              {/* Modal Header */}
+              <div className="text-center space-y-3">
+                <div className="mx-auto w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center">
+                  <EnvelopeIcon className="w-6 h-6 text-white" />
+                </div>
+                <Dialog.Title className="text-2xl font-bold text-white">
+                  Reset Password
+                </Dialog.Title>
+                <Dialog.Description className="text-gray-400 text-sm">
+                  Enter your email address and we&apos;ll send you a link to reset your password.
+                </Dialog.Description>
+              </div>
 
-        @keyframes shake {
+              {/* Error/Success Messages for Reset */}
+              {resetError && (
+                <div className="bg-red-900/50 border border-red-500/50 rounded-xl p-4 flex items-start gap-3">
+                  <ExclamationTriangleIcon className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
+                  <div className="text-red-300 text-sm leading-relaxed">{resetError}</div>
+                </div>
+              )}
+
+              {resetSuccess && (
+                <div className="bg-green-900/50 border border-green-500/50 rounded-xl p-4 flex items-start gap-3">
+                  <CheckCircleIcon className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
+                  <div className="text-green-300 text-sm leading-relaxed">{resetSuccess}</div>
+                </div>
+              )}
+
+              {/* Reset Form */}
+              <Form.Root onSubmit={handleForgotPassword} className="space-y-4">
+                <Form.Field name="reset-email" className="space-y-2">
+                  <Form.Label className="block text-sm font-semibold text-blue-400">
+                    Email Address
+                  </Form.Label>
+                  <div className="relative">
+                    <EnvelopeIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Form.Control asChild>
+                      <input
+                        type="email"
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                        required
+                        className="w-full bg-gray-800/60 border border-gray-600/50 rounded-xl pl-12 pr-4 py-3 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-300"
+                        placeholder="Enter your email address"
+                      />
+                    </Form.Control>
+                  </div>
+                  <Form.Message match="valueMissing" className="text-red-400 text-sm">
+                    Email address is required
+                  </Form.Message>
+                  <Form.Message match="typeMismatch" className="text-red-400 text-sm">
+                    Please enter a valid email address
+                  </Form.Message>
+                </Form.Field>
+
+                <div className="flex gap-3 pt-2">
+                  <Dialog.Close asChild>
+                    <button
+                      type="button"
+                      className="flex-1 px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-xl transition-all duration-200"
+                    >
+                      Cancel
+                    </button>
+                  </Dialog.Close>
+                  <Form.Submit asChild>
+                    <button
+                      type="submit"
+                      disabled={isSendingReset}
+                      className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {isSendingReset ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        'Send Reset Link'
+                      )}
+                    </button>
+                  </Form.Submit>
+                </div>
+              </Form.Root>
+            </div>
+
+            <Dialog.Close asChild>
+              <button className="absolute right-4 top-4 p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-800/50 rounded-lg transition-colors">
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            </Dialog.Close>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
+      <style jsx global>{`
+        @keyframes gradient-x {
           0%, 100% {
-            transform: translateX(0);
+            background-position: 0 50%;
           }
-          25% {
-            transform: translateX(-5px);
-          }
-          75% {
-            transform: translateX(5px);
+          50% {
+            background-position: 100% 50%;
           }
         }
 
-        @keyframes fade-in {
-          from {
-            opacity: 0;
+        @keyframes float {
+          0%, 100% {
+            transform: translateY(0px) rotate(0deg);
           }
-          to {
-            opacity: 1;
+          33% {
+            transform: translateY(-20px) rotate(1deg);
           }
-        }
-
-        @keyframes scale-in {
-          from {
-            opacity: 0;
-            transform: scale(0.9);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
+          66% {
+            transform: translateY(10px) rotate(-1deg);
           }
         }
 
-        @keyframes grid-move {
-          0% {
-            transform: translate(0, 0);
+        @keyframes float-delayed {
+          0%, 100% {
+            transform: translateY(0px) rotate(0deg);
           }
-          100% {
-            transform: translate(20px, 20px);
+          33% {
+            transform: translateY(15px) rotate(-1deg);
           }
-        }
-
-        @keyframes dots {
-          0%, 20% {
-            content: '';
-          }
-          40% {
-            content: '.';
-          }
-          60% {
-            content: '..';
-          }
-          80%, 100% {
-            content: '...';
+          66% {
+            transform: translateY(-10px) rotate(1deg);
           }
         }
 
-        /* Custom scrollbar for dark theme */
-        ::-webkit-scrollbar {
-          width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-          background: rgba(0, 0, 0, 0.1);
-        }
-
-        ::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.2);
-          border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-          background: rgba(255, 255, 255, 0.3);
-        }
-
-        /* Material You inspired ripple effect */
-        @keyframes ripple {
-          to {
-            transform: scale(4);
-            opacity: 0;
+        @keyframes bounce-slow {
+          0%, 100% {
+            transform: translateY(0px) scale(1);
+          }
+          50% {
+            transform: translateY(-5px) scale(1.05);
           }
         }
 
+        .bg-gradient-animated {
+          background: linear-gradient(-45deg,
+          #0f172a, #1e293b, #374151, #111827,
+          #1f2937, #0f172a, #312e81, #1e1b4b);
+          background-size: 400% 400%;
+          animation: gradient-x 15s ease infinite;
+        }
+
+        .animate-float {
+          animation: float 8s ease-in-out infinite;
+        }
+
+        .animate-float-delayed {
+          animation: float-delayed 10s ease-in-out infinite;
+        }
+
+        .animate-bounce-slow {
+          animation: bounce-slow 6s ease-in-out infinite;
+        }
       `}</style>
     </div>
   );
 }
-
-
-

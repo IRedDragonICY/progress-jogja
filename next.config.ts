@@ -1,8 +1,17 @@
-import type { NextConfig } from "next";
+import { NextConfig } from 'next';
 
-const nextConfig: NextConfig = {
-  /* config options here */
-  pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
+const config: NextConfig = {
+  reactStrictMode: true,
+  // Update to use remotePatterns instead of deprecated domains
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'snpygntfpumljzhikwym.supabase.co',
+        pathname: '**',
+      },
+    ],
+  },
 };
 
-export default nextConfig;
+export default config;
