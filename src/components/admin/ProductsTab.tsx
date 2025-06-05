@@ -44,12 +44,12 @@ const StatusBadge = ({ published }: { published: boolean }) => (
     {published ? (
       <>
         <CheckCircleIcon className="w-3.5 h-3.5 mr-1.5" />
-        Published
+        Diterbitkan
       </>
     ) : (
       <>
         <ClockIcon className="w-3.5 h-3.5 mr-1.5" />
-        Draft
+        Draf
       </>
     )}
   </span>
@@ -90,7 +90,7 @@ const ActionButton = ({
 export function ProductsTab({
   products,
   userDrafts,
-                              onCreateNewProduct,
+  onCreateNewProduct,
   onEditProduct,
   onDeleteProduct,
   onTogglePublish,
@@ -133,9 +133,9 @@ export function ProductsTab({
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
         <div>
           <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent mb-2">
-            Products Management
+            Manajemen Produk
           </h2>
-          <p className="text-slate-400">Create, edit, and manage your product catalog</p>
+          <p className="text-slate-400">Buat, sunting, dan kelola katalog produk Anda</p>
         </div>
 
         <div className="flex gap-3">
@@ -143,7 +143,7 @@ export function ProductsTab({
             <button
                 className="relative px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold rounded-2xl transition-all duration-300 shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:-translate-y-0.5 flex items-center gap-2.5 border border-amber-400/20">
               <DocumentTextIcon className="w-5 h-5" />
-              <span>Drafts</span>
+              <span>Draf</span>
               {userDrafts.length > 0 && (
                 <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
                   {userDrafts.length}
@@ -158,7 +158,7 @@ export function ProductsTab({
             className="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold rounded-2xl transition-all duration-300 shadow-lg shadow-red-500/25 hover:shadow-red-500/40 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2.5 border border-red-400/20"
           >
             <PlusIcon className="w-5 h-5" />
-            Add Product
+            Tambah Produk
           </button>
         </div>
       </div>
@@ -169,16 +169,16 @@ export function ProductsTab({
             <thead className="bg-slate-800/60 backdrop-blur-sm">
               <tr>
                 <th className="px-8 py-6 text-left text-xs font-bold text-slate-300 uppercase tracking-wider border-b border-slate-700/50">
-                  Product
+                  Produk
                 </th>
                 <th className="px-8 py-6 text-left text-xs font-bold text-slate-300 uppercase tracking-wider border-b border-slate-700/50">
-                  Type
+                  Tipe
                 </th>
                 <th className="px-8 py-6 text-left text-xs font-bold text-slate-300 uppercase tracking-wider border-b border-slate-700/50">
                   Status
                 </th>
                 <th className="px-8 py-6 text-right text-xs font-bold text-slate-300 uppercase tracking-wider border-b border-slate-700/50">
-                  Actions
+                  Aksi
                 </th>
               </tr>
             </thead>
@@ -206,14 +206,14 @@ export function ProductsTab({
                           {product.name}
                         </p>
                         <p className="text-slate-400 text-sm mt-1 line-clamp-1">
-                          {product.description || 'No description'}
+                          {product.description || 'Tanpa deskripsi'}
                         </p>
                       </div>
                     </div>
                   </td>
                   <td className="px-8 py-6">
                     <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/30">
-                      {product.product_types?.name || 'Uncategorized'}
+                      {product.product_types?.name || 'Tanpa Kategori'}
                     </span>
                   </td>
                   <td className="px-8 py-6">
@@ -226,7 +226,7 @@ export function ProductsTab({
                         icon={PencilIcon}
                         variant="secondary"
                       >
-                        Edit
+                        Sunting
                       </ActionButton>
 
                       <AlertDialog.Root>
@@ -236,22 +236,22 @@ export function ProductsTab({
                             icon={product.is_published ? EyeSlashIcon : EyeIcon}
                             variant={product.is_published ? "secondary" : "success"}
                           >
-                            {product.is_published ? 'Unpublish' : 'Publish'}
+                            {product.is_published ? 'Batal Terbit' : 'Terbitkan'}
                           </ActionButton>
                         </AlertDialog.Trigger>
                         <AlertDialog.Portal>
                           <AlertDialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" />
                           <AlertDialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-800 rounded-2xl p-8 w-full max-w-md z-50 border border-slate-700 shadow-2xl">
                             <AlertDialog.Title className="text-xl font-semibold text-white mb-2">
-                              {product.is_published ? 'Unpublish' : 'Publish'} Product
+                              {product.is_published ? 'Batalkan Penerbitan' : 'Terbitkan'} Produk
                             </AlertDialog.Title>
                             <AlertDialog.Description className="text-slate-400 mb-6">
-                              Are you sure you want to {product.is_published ? 'hide' : 'publish'} &quot;{product.name}&quot;?
+                              Apakah Anda yakin ingin {product.is_published ? 'menyembunyikan' : 'menerbitkan'} &quot;{product.name}&quot;?
                             </AlertDialog.Description>
                             <div className="flex gap-3 justify-end">
                               <AlertDialog.Cancel asChild>
                                 <button className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition-colors">
-                                  Cancel
+                                  Batal
                                 </button>
                               </AlertDialog.Cancel>
                               <AlertDialog.Action asChild>
@@ -263,7 +263,7 @@ export function ProductsTab({
                                       : 'bg-emerald-600 hover:bg-emerald-700'
                                   }`}
                                 >
-                                  {product.is_published ? 'Unpublish' : 'Publish'}
+                                  {product.is_published ? 'Batal Terbit' : 'Terbitkan'}
                                 </button>
                               </AlertDialog.Action>
                             </div>
@@ -278,22 +278,22 @@ export function ProductsTab({
                             icon={TrashIcon}
                             variant="danger"
                           >
-                            Delete
+                            Hapus
                           </ActionButton>
                         </AlertDialog.Trigger>
                         <AlertDialog.Portal>
                           <AlertDialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" />
                           <AlertDialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-800 rounded-2xl p-8 w-full max-w-md z-50 border border-slate-700 shadow-2xl">
                             <AlertDialog.Title className="text-xl font-semibold text-white mb-2">
-                              Delete Product
+                              Hapus Produk
                             </AlertDialog.Title>
                             <AlertDialog.Description className="text-slate-400 mb-6">
-                              Are you sure you want to delete &quot;{product.name}&quot;? This action cannot be undone and will also delete all related drafts.
+                              Apakah Anda yakin ingin menghapus &quot;{product.name}&quot;? Tindakan ini tidak dapat dibatalkan dan juga akan menghapus semua draf terkait.
                             </AlertDialog.Description>
                             <div className="flex gap-3 justify-end">
                               <AlertDialog.Cancel asChild>
                                 <button className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition-colors">
-                                  Cancel
+                                  Batal
                                 </button>
                               </AlertDialog.Cancel>
                               <AlertDialog.Action asChild>
@@ -301,7 +301,7 @@ export function ProductsTab({
                                   onClick={() => onDeleteProduct(product.id)}
                                   className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-colors"
                                 >
-                                  Delete
+                                  Hapus
                                 </button>
                               </AlertDialog.Action>
                             </div>
@@ -320,13 +320,13 @@ export function ProductsTab({
                       <div className="w-20 h-20 bg-slate-700/50 rounded-3xl flex items-center justify-center mb-6">
                         <CubeIcon className="w-10 h-10 text-slate-500" />
                       </div>
-                      <h3 className="text-xl font-semibold text-slate-300 mb-2">No products found</h3>
-                      <p className="text-slate-500 mb-6">Create your first product to get started</p>
+                      <h3 className="text-xl font-semibold text-slate-300 mb-2">Tidak ada produk yang ditemukan</h3>
+                      <p className="text-slate-500 mb-6">Buat produk pertama Anda untuk memulai</p>
                       <button
                         onClick={onCreateNewProduct}
                         className="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold rounded-xl transition-all duration-300"
                       >
-                        Create Product
+                        Buat Produk
                       </button>
                     </div>
                   </td>
@@ -339,9 +339,9 @@ export function ProductsTab({
 
       <div className="mt-12">
         <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent mb-2">
-          Product Types
+          Tipe Produk
         </h2>
-        <p className="text-slate-400 mb-8">Organize your products with custom categories</p>
+        <p className="text-slate-400 mb-8">Atur produk Anda dengan kategori khusus</p>
 
         <div className="bg-slate-800/40 backdrop-blur-xl rounded-3xl p-8 border border-slate-700/50 shadow-2xl">
           <div className="mb-8">
@@ -349,7 +349,7 @@ export function ProductsTab({
               <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
                 <PlusIcon className="w-4 h-4 text-white" />
               </div>
-              Add New Type
+              Tambah Tipe Baru
             </h3>
 
             <Form.Root onSubmit={handleAddTypeSubmit}>
@@ -360,7 +360,7 @@ export function ProductsTab({
                       type="text"
                       value={newTypeName}
                       onChange={(e) => setNewTypeName(e.target.value)}
-                      placeholder="Enter type name (e.g., Electronics, Clothing)"
+                      placeholder="Masukkan nama tipe (misalnya, Elektronik, Pakaian)"
                       className="w-full px-6 py-4 bg-slate-700/50 backdrop-blur-sm border border-slate-600/50 text-white rounded-2xl focus:ring-2 focus:ring-red-500/50 focus:border-red-500/50 transition-all duration-200 placeholder-slate-400"
                     />
                   </Form.Control>
@@ -373,7 +373,7 @@ export function ProductsTab({
                     className="px-8 py-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold rounded-2xl transition-all duration-300 shadow-lg shadow-red-500/25 hover:shadow-red-500/40 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2.5"
                   >
                     <PlusIcon className="w-5 h-5" />
-                    Add Type
+                    Tambah Tipe
                   </button>
                 </Form.Submit>
               </div>
@@ -385,7 +385,7 @@ export function ProductsTab({
               <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
                 <TagIcon className="w-4 h-4 text-white" />
               </div>
-              Existing Types ({productTypes.length})
+              Tipe yang Ada ({productTypes.length})
             </h3>
 
             {!productTypes.length && !isDataLoading ? (
@@ -393,8 +393,8 @@ export function ProductsTab({
                 <div className="w-20 h-20 bg-slate-700/50 rounded-3xl flex items-center justify-center mx-auto mb-6">
                   <TagIcon className="w-10 h-10 text-slate-500" />
                 </div>
-                <h4 className="text-xl font-semibold text-slate-300 mb-2">No product types yet</h4>
-                <p className="text-slate-500 mb-6">Create your first product type to organize your catalog</p>
+                <h4 className="text-xl font-semibold text-slate-300 mb-2">Belum ada tipe produk</h4>
+                <p className="text-slate-500 mb-6">Buat tipe produk pertama Anda untuk mengatur katalog</p>
               </div>
             ) : (
               <div className="grid gap-4">
@@ -409,7 +409,7 @@ export function ProductsTab({
                           {type.name}
                         </h4>
                         <p className="text-slate-400 text-sm">
-                          Product category
+                          Kategori produk
                         </p>
                       </div>
                     </div>
@@ -421,7 +421,7 @@ export function ProductsTab({
                             className="px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 font-semibold rounded-xl transition-all duration-200 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <PencilSquareIcon className="w-4 h-4" />
-                            Edit
+                            Sunting
                         </button>
                         <AlertDialog.Root>
                         <AlertDialog.Trigger asChild>
@@ -430,7 +430,7 @@ export function ProductsTab({
                             className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 font-semibold rounded-xl transition-all duration-200 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                             <TrashIcon className="w-4 h-4" />
-                            Delete
+                            Hapus
                             </button>
                         </AlertDialog.Trigger>
 
@@ -438,15 +438,15 @@ export function ProductsTab({
                             <AlertDialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" />
                             <AlertDialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-800 rounded-2xl p-8 w-full max-w-md z-50 border border-slate-700 shadow-2xl">
                             <AlertDialog.Title className="text-xl font-semibold text-white mb-2">
-                                Delete Product Type
+                                Hapus Tipe Produk
                             </AlertDialog.Title>
                             <AlertDialog.Description className="text-slate-400 mb-6">
-                                Are you sure you want to delete the &quot;{type.name}&quot; product type? This action cannot be undone and may affect existing products.
+                                Apakah Anda yakin ingin menghapus tipe produk &quot;{type.name}&quot;? Tindakan ini tidak dapat dibatalkan dan dapat memengaruhi produk yang ada.
                             </AlertDialog.Description>
                             <div className="flex gap-3 justify-end">
                                 <AlertDialog.Cancel asChild>
                                 <button className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition-colors">
-                                    Cancel
+                                    Batal
                                 </button>
                                 </AlertDialog.Cancel>
                                 <AlertDialog.Action asChild>
@@ -454,7 +454,7 @@ export function ProductsTab({
                                     onClick={() => onDeleteType(type.id)}
                                     className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-colors"
                                 >
-                                    Delete
+                                    Hapus
                                 </button>
                                 </AlertDialog.Action>
                             </div>
@@ -475,16 +475,16 @@ export function ProductsTab({
           <AlertDialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
           <AlertDialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-800/95 backdrop-blur-xl rounded-3xl p-8 w-full max-w-md z-50 border border-slate-700/50 shadow-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95">
             <AlertDialog.Title className="text-2xl font-bold text-white mb-3">
-              Edit Product Type
+              Sunting Tipe Produk
             </AlertDialog.Title>
             <AlertDialog.Description className="text-slate-400 mb-6 text-lg">
-              Update the name for &quot;{editingProductType?.name}&quot;.
+              Perbarui nama untuk &quot;{editingProductType?.name}&quot;.
             </AlertDialog.Description>
 
             <Form.Root onSubmit={handleUpdateTypeSubmit}>
               <Form.Field name="editTypeName" className="mb-6">
                 <Form.Label className="block text-sm font-semibold text-slate-300 mb-2">
-                  New Type Name
+                  Nama Tipe Baru
                 </Form.Label>
                 <Form.Control asChild>
                   <input
@@ -493,18 +493,18 @@ export function ProductsTab({
                     onChange={(e) => setEditedProductTypeName(e.target.value)}
                     required
                     className="w-full px-5 py-3.5 bg-slate-700/50 backdrop-blur-sm border border-slate-600/50 text-white rounded-xl focus:ring-2 focus:ring-red-500/50 focus:border-red-500/50 transition-all duration-200 placeholder-slate-400"
-                    placeholder="Enter new type name"
+                    placeholder="Masukkan nama tipe baru"
                   />
                 </Form.Control>
                 <Form.Message match="valueMissing" className="text-red-400 text-sm mt-1">
-                  Type name cannot be empty.
+                  Nama tipe tidak boleh kosong.
                 </Form.Message>
               </Form.Field>
 
               <div className="flex gap-4 justify-end">
                 <AlertDialog.Cancel asChild>
                   <button type="button" className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-xl transition-all duration-200">
-                    Cancel
+                    Batal
                   </button>
                 </AlertDialog.Cancel>
                 <Form.Submit asChild>
@@ -513,7 +513,7 @@ export function ProductsTab({
                     disabled={isProcessing || !editedProductTypeName.trim()}
                     className="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Save Changes
+                    Simpan Perubahan
                   </button>
                 </Form.Submit>
               </div>

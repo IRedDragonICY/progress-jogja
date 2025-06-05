@@ -72,7 +72,7 @@ export default function AdminPage() {
       setOrganizationProfile(profileData);
     } catch (err: unknown) {
       const error = err as Error;
-      setNetworkError(`Data load failed: ${error.message}`);
+      setNetworkError(`Gagal memuat data: ${error.message}`);
     } finally {
       setIsDataLoading(false);
     }
@@ -180,7 +180,7 @@ export default function AdminPage() {
     try {
       await createProductType(name);
       await loadAllAdminData(true);
-      showToast('Product type added successfully!');
+      showToast('Tipe produk berhasil ditambahkan!');
     } catch (error: unknown) {
       const err = error as Error;
       showToast(err.message, 'error');
@@ -194,10 +194,10 @@ export default function AdminPage() {
     try {
       await updateProductType(id, name);
       await loadAllAdminData(true);
-      showToast('Product type updated successfully!');
+      showToast('Tipe produk berhasil diperbarui!');
     } catch (error: unknown) {
       const err = error as Error;
-      showToast(`Failed to update type: ${err.message}`, 'error');
+      showToast(`Gagal memperbarui tipe: ${err.message}`, 'error');
     } finally {
       setIsProcessing(false);
     }
@@ -208,7 +208,7 @@ export default function AdminPage() {
     try {
       await deleteProductType(id);
       await loadAllAdminData(true);
-      showToast('Product type deleted successfully!');
+      showToast('Tipe produk berhasil dihapus!');
     } catch (error: unknown) {
       const err = error as Error;
       showToast(err.message, 'error');
@@ -222,7 +222,7 @@ export default function AdminPage() {
     try {
       await deleteMasterProductAndDrafts(id);
       await loadAllAdminData(true);
-      showToast('Product deleted successfully!');
+      showToast('Produk berhasil dihapus!');
     } catch (error: unknown) {
       const err = error as Error;
       showToast(err.message, 'error');
@@ -232,22 +232,24 @@ export default function AdminPage() {
   };
 
   const handleTogglePublish = async (product: Product) => {
-    const action = product.is_published ? "unpublish" : "publish";
+    const isUnpublishing = product.is_published;
+    const actionText = isUnpublishing ? "pembatalan publikasi" : "penerbitan";
+    const verbText = isUnpublishing ? "dibatalkan publikasinya" : "diterbitkan";
     setIsProcessing(true);
     try {
       await toggleProductPublishStatus(product.id, !product.is_published);
       await loadAllAdminData(true);
-      showToast(`Product ${action}ed successfully!`);
+      showToast(`Produk berhasil ${verbText}!`);
     } catch (error: unknown) {
       const err = error as Error;
-      showToast(`Failed to ${action}: ${err.message}`, 'error');
+      showToast(`Gagal melakukan ${actionText}: ${err.message}`, 'error');
     } finally {
       setIsProcessing(false);
     }
   };
 
   const handleFormSave = async (draftId: string, data: ProductFormData) => {
-    if (!user) throw new Error("User not authenticated for save.");
+    if (!user) throw new Error("Pengguna tidak terotentikasi untuk menyimpan.");
     try {
       const savedDraft = await createOrUpdateDraft(user.id, data, draftId);
       setUserDrafts(prevDrafts => {
@@ -260,27 +262,27 @@ export default function AdminPage() {
         return [savedDraft, ...prevDrafts];
       });
     } catch (error) {
-      console.error("Failed to save draft from AdminPage:", error);
+      console.error("Gagal menyimpan draf dari AdminPage:", error);
       throw error;
     }
   };
 
   const handleFormPublish = async (draftId: string) => {
     if (!user) {
-      showToast("Authentication error.", 'error');
+      showToast("Kesalahan otentikasi.", 'error');
       return;
     }
     setIsProcessing(true);
     try {
       await publishDraft(draftId, user.id);
-      showToast("Product published successfully!");
+      showToast("Produk berhasil diterbitkan!");
       setShowProductFormDialog(false);
       setActiveDraftIdForForm(undefined);
       setFormInitialData(undefined);
       await loadAllAdminData(true);
     } catch (error: unknown) {
       const err = error as Error;
-      showToast(`Failed to publish: ${err.message}`, 'error');
+      showToast(`Gagal menerbitkan: ${err.message}`, 'error');
       throw err;
     } finally {
       setIsProcessing(false);
@@ -291,14 +293,14 @@ export default function AdminPage() {
     if (!user) return;
     setIsProcessing(true);
     try {
-      const newEmptyDraft = await createOrUpdateDraft(user.id, { name: "Untitled Draft" });
+      const newEmptyDraft = await createOrUpdateDraft(user.id, { name: "Draf Tanpa Judul" });
       setActiveDraftIdForForm(newEmptyDraft.id);
       setFormInitialData(newEmptyDraft);
       setShowProductFormDialog(true);
       setShowDraftsDialog(false);
     } catch (error: unknown) {
       const err = error as Error;
-      showToast(`Error creating initial draft: ${err.message}`, 'error');
+      showToast(`Gagal membuat draf awal: ${err.message}`, 'error');
     } finally {
       setIsProcessing(false);
     }
@@ -322,7 +324,7 @@ export default function AdminPage() {
       setShowDraftsDialog(false);
     } catch (error: unknown) {
       const err = error as Error;
-      showToast(`Error creating draft from product: ${err.message}`, 'error');
+      showToast(`Gagal membuat draf dari produk: ${err.message}`, 'error');
     } finally {
       setIsProcessing(false);
     }
@@ -345,10 +347,10 @@ export default function AdminPage() {
         setFormInitialData(undefined);
       }
       await loadAllAdminData(true);
-      showToast('Draft deleted successfully!');
+      showToast('Draf berhasil dihapus!');
     } catch (error: unknown) {
       const err = error as Error;
-      showToast(`Failed to delete draft: ${err.message}`, 'error');
+      showToast(`Gagal menghapus draf: ${err.message}`, 'error');
     } finally {
       setIsProcessing(false);
     }
@@ -356,7 +358,7 @@ export default function AdminPage() {
 
   const handleDeleteAllUserDraftsAction = async () => {
     if (!user) {
-      showToast("Authentication error.", 'error');
+      showToast("Kesalahan otentikasi.", 'error');
       return;
     }
     setIsProcessing(true);
@@ -371,10 +373,10 @@ export default function AdminPage() {
         }
       }
       setUserDrafts([]);
-      showToast('All drafts deleted successfully!');
+      showToast('Semua draf berhasil dihapus!');
     } catch (error: unknown) {
       const err = error as Error;
-      showToast(`Failed to delete all drafts: ${err.message}`, 'error');
+      showToast(`Gagal menghapus semua draf: ${err.message}`, 'error');
     } finally {
       setIsProcessing(false);
     }
@@ -391,10 +393,10 @@ export default function AdminPage() {
     try {
       const updatedProfile = await upsertOrganizationProfile(data);
       setOrganizationProfile(updatedProfile);
-      showToast('Organization profile saved successfully!');
+      showToast('Profil organisasi berhasil disimpan!');
     } catch (error: unknown) {
       const err = error as Error;
-      showToast(`Failed to save profile: ${err.message}`, 'error');
+      showToast(`Gagal menyimpan profil: ${err.message}`, 'error');
     } finally {
       setIsProfileSaving(false);
     }
@@ -426,8 +428,8 @@ export default function AdminPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800">
         <div className="text-center">
           <div className="animate-spin rounded-full h-20 w-20 border-b-2 border-red-500 mx-auto mb-6"></div>
-          <h1 className="text-2xl font-bold text-white mb-2">Loading Dashboard</h1>
-          <p className="text-slate-400">Preparing your admin panel...</p>
+          <h1 className="text-2xl font-bold text-white mb-2">Memuat Dasbor</h1>
+          <p className="text-slate-400">Mempersiapkan panel admin Anda...</p>
         </div>
       </div>
     );
@@ -438,8 +440,8 @@ export default function AdminPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800">
         <div className="text-center">
           <div className="animate-spin rounded-full h-20 w-20 border-b-2 border-red-500 mx-auto mb-6"></div>
-          <h1 className="text-2xl font-bold text-white mb-2">Logging Out</h1>
-          <p className="text-slate-400">Securing your session...</p>
+          <h1 className="text-2xl font-bold text-white mb-2">Sedang Keluar</h1>
+          <p className="text-slate-400">Mengamankan sesi Anda...</p>
         </div>
       </div>
     );
@@ -450,7 +452,7 @@ export default function AdminPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800">
         <div className="text-center">
           <div className="animate-pulse h-8 w-8 bg-red-500 rounded-full mx-auto mb-4"></div>
-          <p className="text-xl font-medium text-gray-300">Redirecting to login...</p>
+          <p className="text-xl font-medium text-gray-300">Mengarahkan ke halaman login...</p>
         </div>
       </div>
     );
@@ -466,13 +468,13 @@ export default function AdminPage() {
                 <h1 className="text-4xl font-bold bg-gradient-to-r from-red-400 via-red-500 to-red-600 bg-clip-text text-transparent">
                   Progress Jogja
                 </h1>
-                <p className="text-slate-400 text-lg">Admin Dashboard</p>
-                <p className="text-slate-500 text-sm">Manage products, types, and organization profile</p>
+                <p className="text-slate-400 text-lg">Dasbor Admin</p>
+                <p className="text-slate-500 text-sm">Kelola produk, tipe, dan profil organisasi</p>
               </div>
 
               <div className="flex items-center gap-4">
                 <div className="hidden md:block text-right">
-                  <p className="text-sm text-slate-400">Logged in as</p>
+                  <p className="text-sm text-slate-400">Masuk sebagai</p>
                   <p className="text-white font-medium">{user?.email}</p>
                 </div>
 
@@ -482,7 +484,7 @@ export default function AdminPage() {
                       disabled={isLoggingOut}
                       className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold rounded-2xl transition-all duration-300 shadow-lg shadow-red-500/25 hover:shadow-red-500/40 disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5"
                     >
-                      {isLoggingOut ? 'Logging out...' : 'Logout'}
+                      {isLoggingOut ? 'Sedang keluar...' : 'Keluar'}
                     </button>
                   </AlertDialog.Trigger>
 
@@ -490,15 +492,15 @@ export default function AdminPage() {
                     <AlertDialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
                     <AlertDialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-800/95 backdrop-blur-xl rounded-3xl p-8 w-full max-w-md z-50 border border-slate-700/50 shadow-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95">
                       <AlertDialog.Title className="text-2xl font-bold text-white mb-3">
-                        Confirm Logout
+                        Konfirmasi Keluar
                       </AlertDialog.Title>
                       <AlertDialog.Description className="text-slate-400 mb-8 text-lg">
-                        Are you sure you want to logout from the admin dashboard?
+                        Apakah Anda yakin ingin keluar dari dasbor admin?
                       </AlertDialog.Description>
                       <div className="flex gap-4 justify-end">
                         <AlertDialog.Cancel asChild>
                           <button className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-xl transition-all duration-200">
-                            Cancel
+                            Batal
                           </button>
                         </AlertDialog.Cancel>
                         <AlertDialog.Action asChild>
@@ -506,7 +508,7 @@ export default function AdminPage() {
                             onClick={() => handleLogout().catch(console.error)}
                             className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-medium rounded-xl transition-all duration-200"
                           >
-                            Logout
+                            Keluar
                           </button>
                         </AlertDialog.Action>
                       </div>
@@ -521,9 +523,9 @@ export default function AdminPage() {
                 <div className="flex items-center justify-center gap-4">
                   <LoadingSpinner />
                   <span className="text-red-200 font-semibold text-lg">
-                    {isDataLoading ? 'Fetching latest data...' :
-                    isProfileSaving ? 'Saving profile changes...' :
-                    'Processing request...'}
+                    {isDataLoading ? 'Mengambil data terbaru...' :
+                    isProfileSaving ? 'Menyimpan perubahan profil...' :
+                    'Memproses permintaan...'}
                   </span>
                 </div>
               </div>
@@ -540,7 +542,7 @@ export default function AdminPage() {
                     onClick={() => loadAllAdminData(true).catch(console.error)}
                     className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition-all duration-200"
                   >
-                    Retry
+                    Coba Lagi
                   </button>
                 </div>
               </div>
@@ -588,7 +590,7 @@ export default function AdminPage() {
               <Dialog.Overlay className="fixed inset-0 bg-black/70 backdrop-blur-md z-40 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
               <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-[90vh] max-h-[90vh] bg-transparent border-none shadow-none z-50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] p-0">
                 <VisuallyHidden>
-                  <Dialog.Title>Product Editor</Dialog.Title>
+                  <Dialog.Title>Editor Produk</Dialog.Title>
                 </VisuallyHidden>
                 {activeDraftIdForForm && formInitialData !== undefined && (
                   <AdminProductForm
@@ -612,9 +614,9 @@ export default function AdminPage() {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-8 border-b border-slate-700/50 bg-gradient-to-r from-slate-800/50 to-slate-700/50 gap-4">
                   <div className="flex-1">
                     <Dialog.Title className="text-2xl font-bold text-white mb-1">
-                      My Drafts
+                      Draf Saya
                     </Dialog.Title>
-                    <p className="text-slate-400">Manage your work in progress</p>
+                    <p className="text-slate-400">Kelola draf pekerjaan Anda</p>
                   </div>
                   <div className="flex flex-wrap gap-3">
                     {userDrafts.length > 0 && (
@@ -625,7 +627,7 @@ export default function AdminPage() {
                                     className="px-4 py-2 bg-red-700 hover:bg-red-800 text-white text-sm font-medium rounded-xl transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <TrashIcon className="w-4 h-4" />
-                                    Delete All
+                                    Hapus Semua
                                 </button>
                             </AlertDialog.Trigger>
                             <AlertDialog.Portal>
@@ -633,15 +635,15 @@ export default function AdminPage() {
                                 <AlertDialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-800 rounded-2xl p-8 w-full max-w-md z-50 border border-slate-700 shadow-2xl">
                                 <AlertDialog.Title className="text-xl font-semibold text-white mb-2 flex items-center gap-2">
                                     <ExclamationTriangleIcon className="w-6 h-6 text-red-400"/>
-                                    Confirm Deletion
+                                    Konfirmasi Penghapusan
                                 </AlertDialog.Title>
                                 <AlertDialog.Description className="text-slate-400 mb-6">
-                                    Are you sure you want to delete ALL drafts? This action cannot be undone.
+                                    Apakah Anda yakin ingin menghapus SEMUA draf? Tindakan ini tidak dapat dibatalkan.
                                 </AlertDialog.Description>
                                 <div className="flex gap-3 justify-end">
                                     <AlertDialog.Cancel asChild>
                                     <button className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition-colors">
-                                        Cancel
+                                        Batal
                                     </button>
                                     </AlertDialog.Cancel>
                                     <AlertDialog.Action asChild>
@@ -649,7 +651,7 @@ export default function AdminPage() {
                                         onClick={handleDeleteAllUserDraftsAction}
                                         className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-colors"
                                     >
-                                        Delete All Drafts
+                                        Hapus Semua Draf
                                     </button>
                                     </AlertDialog.Action>
                                 </div>
@@ -662,7 +664,7 @@ export default function AdminPage() {
                         disabled={isProcessing}
                         className="px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-sm font-medium rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Create New Draft
+                        Buat Draf Baru
                       </button>
                   </div>
                   <Dialog.Close asChild>
@@ -678,8 +680,8 @@ export default function AdminPage() {
                       <div className="w-20 h-20 bg-gradient-to-br from-slate-700 to-slate-800 rounded-3xl flex items-center justify-center mx-auto mb-6">
                         <DocumentTextIcon className="w-10 h-10 text-slate-400" />
                       </div>
-                      <h3 className="text-xl font-semibold text-slate-300 mb-2">No drafts yet</h3>
-                      <p className="text-slate-500 mb-6">Start creating your first product draft</p>
+                      <h3 className="text-xl font-semibold text-slate-300 mb-2">Belum ada draf</h3>
+                      <p className="text-slate-500 mb-6">Mulai buat draf produk pertama Anda</p>
                     </div>
                   ) : (
                     <div className="grid gap-4">
@@ -688,17 +690,17 @@ export default function AdminPage() {
                           <div className="flex flex-col lg:flex-row justify-between gap-4">
                             <div className="flex-1 space-y-3">
                               <h4 className="text-lg font-semibold text-white group-hover:text-red-300 transition-colors">
-                                {draft.name || "[Untitled Draft]"}
+                                {draft.name || "[Draf Tanpa Judul]"}
                               </h4>
                               <div className="space-y-1.5">
                                 <p className="text-sm text-slate-400">
                                   {draft.product_id ?
-                                    `Editing Product ID: ...${draft.product_id.slice(-6)}` :
-                                    "New Product Draft"
+                                    `Mengedit Produk ID: ...${draft.product_id.slice(-6)}` :
+                                    "Draf Produk Baru"
                                   }
                                 </p>
                                 <p className="text-sm text-slate-400">
-                                  Last saved: {new Date(draft.updated_at!).toLocaleString()}
+                                  Terakhir disimpan: {new Date(draft.updated_at!).toLocaleString('id-ID')}
                                 </p>
                               </div>
                             </div>
@@ -709,29 +711,29 @@ export default function AdminPage() {
                                 className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white text-sm font-medium rounded-xl transition-all duration-200 flex items-center gap-2"
                               >
                                 <PencilIcon className="w-4 h-4" />
-                                Edit
+                                Ubah
                               </button>
 
                               <AlertDialog.Root>
                                 <AlertDialog.Trigger asChild>
                                   <button className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-xl transition-all duration-200 flex items-center gap-2">
                                     <ArrowRightIcon className="w-4 h-4" />
-                                    Publish
+                                    Terbitkan
                                   </button>
                                 </AlertDialog.Trigger>
                                 <AlertDialog.Portal>
                                   <AlertDialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" />
                                   <AlertDialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-800 rounded-2xl p-8 w-full max-w-md z-50 border border-slate-700 shadow-2xl">
                                     <AlertDialog.Title className="text-xl font-semibold text-white mb-2">
-                                      Publish Draft
+                                      Terbitkan Draf
                                     </AlertDialog.Title>
                                     <AlertDialog.Description className="text-slate-400 mb-6">
-                                      Are you sure you want to publish &ldquo;{draft.name || 'this draft'}&rdquo;? This will make it publicly available.
+                                      Apakah Anda yakin ingin menerbitkan “{draft.name || 'draf ini'}”? Tindakan ini akan membuatnya tersedia untuk publik.
                                     </AlertDialog.Description>
                                     <div className="flex gap-3 justify-end">
                                       <AlertDialog.Cancel asChild>
                                         <button className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition-colors">
-                                          Cancel
+                                          Batal
                                         </button>
                                       </AlertDialog.Cancel>
                                       <AlertDialog.Action asChild>
@@ -739,7 +741,7 @@ export default function AdminPage() {
                                           onClick={() => handleFormPublish(draft.id)}
                                           className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors"
                                         >
-                                          Publish
+                                          Terbitkan
                                         </button>
                                       </AlertDialog.Action>
                                     </div>
@@ -751,22 +753,22 @@ export default function AdminPage() {
                                 <AlertDialog.Trigger asChild>
                                   <button className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-xl transition-all duration-200 flex items-center gap-2">
                                     <TrashIcon className="w-4 h-4" />
-                                    Delete
+                                    Hapus
                                   </button>
                                 </AlertDialog.Trigger>
                                 <AlertDialog.Portal>
                                   <AlertDialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" />
                                   <AlertDialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-800 rounded-2xl p-8 w-full max-w-md z-50 border border-slate-700 shadow-2xl">
                                     <AlertDialog.Title className="text-xl font-semibold text-white mb-2">
-                                      Delete Draft
+                                      Hapus Draf
                                     </AlertDialog.Title>
                                     <AlertDialog.Description className="text-slate-400 mb-6">
-                                      Are you sure you want to delete &ldquo;{draft.name || 'this draft'}&rdquo;? This action cannot be undone.
+                                      Apakah Anda yakin ingin menghapus “{draft.name || 'draf ini'}”? Tindakan ini tidak dapat dibatalkan.
                                     </AlertDialog.Description>
                                     <div className="flex gap-3 justify-end">
                                       <AlertDialog.Cancel asChild>
                                         <button className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition-colors">
-                                          Cancel
+                                          Batal
                                         </button>
                                       </AlertDialog.Cancel>
                                       <AlertDialog.Action asChild>
@@ -774,7 +776,7 @@ export default function AdminPage() {
                                           onClick={() => handleDeleteUserDraft(draft.id)}
                                           className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-colors"
                                         >
-                                          Delete
+                                          Hapus
                                         </button>
                                       </AlertDialog.Action>
                                     </div>
@@ -795,8 +797,8 @@ export default function AdminPage() {
 
         <Toast.Root
           className={`fixed bottom-6 right-6 p-6 rounded-2xl shadow-2xl border z-50 transition-all duration-500 backdrop-blur-xl ${
-            toastType === 'success' 
-              ? 'bg-emerald-900/90 border-emerald-500/50 text-emerald-100' 
+            toastType === 'success'
+              ? 'bg-emerald-900/90 border-emerald-500/50 text-emerald-100'
               : 'bg-red-900/90 border-red-500/50 text-red-100'
           } data-[state=open]:animate-slide-in data-[state=closed]:animate-slide-out data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=cancel]:translate-x-0 data-[swipe=cancel]:transition-[transform_200ms_ease-out] data-[swipe=end]:animate-swipe-out`}
           open={toastOpen}
@@ -806,7 +808,7 @@ export default function AdminPage() {
             <div className={`w-2 h-2 rounded-full mt-2 ${toastType === 'success' ? 'bg-emerald-400' : 'bg-red-400'} animate-pulse`}></div>
             <div className="flex-1">
               <Toast.Title className="font-bold text-lg mb-1">
-                {toastType === 'success' ? 'Success!' : 'Error!'}
+                {toastType === 'success' ? 'Berhasil!' : 'Gagal!'}
               </Toast.Title>
               <Toast.Description className="text-sm opacity-90 leading-relaxed">
                 {toastMessage}
@@ -825,36 +827,17 @@ export default function AdminPage() {
           --radix-toast-swipe-move-x: 0px;
           --radix-toast-swipe-end-x: 0px;
         }
-
         @keyframes slide-in {
-          from {
-            transform: translateX(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateX(0);
-            opacity: 1;
-          }
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
         }
-
         @keyframes slide-out {
-          from {
-            transform: translateX(0);
-            opacity: 1;
-          }
-          to {
-            transform: translateX(100%);
-            opacity: 0;
-          }
+          from { transform: translateX(0); opacity: 1; }
+          to { transform: translateX(100%); opacity: 0; }
         }
-
         @keyframes swipe-out {
-          from {
-            transform: translateX(var(--radix-toast-swipe-end-x));
-          }
-          to {
-            transform: translateX(100%);
-          }
+          from { transform: translateX(var(--radix-toast-swipe-end-x)); }
+          to { transform: translateX(100%); }
         }
       `}</style>
     </Toast.Provider>
