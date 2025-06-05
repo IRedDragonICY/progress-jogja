@@ -1,4 +1,3 @@
-// components/AdminProductForm.tsx
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { ProductType, ProductFormData, FormStoreLink } from '@/types/supabase';
 import { uploadProductImage } from '@/lib/supabase';
@@ -95,7 +94,6 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
 
     const prevComparable = { ...previousFormDataRef.current, store_links: previousFormDataRef.current.store_links?.filter(link => link.name && link.url) || [] };
 
-
     if (isEqual(dataToSave, prevComparable)) {
       setAutoSaveStatus('idle');
       return;
@@ -104,7 +102,7 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
     setAutoSaveStatus('saving');
     try {
       await onSave(activeDraftId, dataToSave);
-      previousFormDataRef.current = dataToSave; // update ref with what was actually saved
+      previousFormDataRef.current = dataToSave;
       setAutoSaveStatus('saved');
       setTimeout(() => setAutoSaveStatus('idle'), 1500);
     } catch (error) {
@@ -120,7 +118,7 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
   useEffect(() => {
     debouncedAutoSave(formData);
     return () => debouncedAutoSave.cancel();
-  }, [formData, formStoreLinks, debouncedAutoSave]); // Added formStoreLinks
+  }, [formData, formStoreLinks, debouncedAutoSave]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -149,27 +147,27 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
 
       setFormData(p => {
         const newImageUrls = [...(p.image_urls || []), ...urls];
-        debouncedAutoSave({ ...p, image_urls: newImageUrls }); // Trigger auto-save immediately after upload
+        debouncedAutoSave({ ...p, image_urls: newImageUrls });
         return { ...p, image_urls: newImageUrls };
       });
-      showToast(`${urls.length} image(s) uploaded successfully!`);
+      showToast(`${urls.length} gambar berhasil diunggah!`);
     } catch(err) {
       console.error(err);
-      showToast("Upload failed. Please try again.", 'error');
+      showToast("Gagal mengunggah. Silakan coba lagi.", 'error');
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
-      if (e.target) e.target.value = ''; // Reset file input
+      if (e.target) e.target.value = '';
     }
   };
 
   const removeImage = (idx: number) => {
     setFormData(p => {
       const newImageUrls = (p.image_urls || []).filter((_, i) => i !== idx);
-      debouncedAutoSave({ ...p, image_urls: newImageUrls }); // Trigger auto-save
+      debouncedAutoSave({ ...p, image_urls: newImageUrls });
       return { ...p, image_urls: newImageUrls };
     });
-    showToast('Image removed');
+    showToast('Gambar dihapus');
   };
 
   const addStoreLink = () => setFormStoreLinks(p => [...p, { id: uuidv4(), name: '', url: '' }]);
@@ -180,7 +178,6 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
     setFormStoreLinks(p => p.filter(l => l.id !== id));
   };
 
-
   const handleManualSave = async () => {
     debouncedAutoSave.cancel();
     setAutoSaveStatus('saving');
@@ -189,18 +186,18 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
       await onSave(activeDraftId, dataToSave);
       previousFormDataRef.current = dataToSave;
       setAutoSaveStatus('saved');
-      showToast('Draft saved successfully!');
+      showToast('Draf berhasil disimpan!');
       setTimeout(() => setAutoSaveStatus('idle'), 1500);
     } catch (error) {
       console.error('Error manually saving draft:', error);
       setAutoSaveStatus('error');
-      showToast('Failed to save draft.', 'error');
+      showToast('Gagal menyimpan draf.', 'error');
     }
   };
 
   const handlePublishClick = () => {
     if (!formData.name?.trim()) {
-      showToast('Product name is required to publish.', 'error');
+      showToast('Nama produk wajib diisi untuk menerbitkan.', 'error');
       return;
     }
     setShowPublishDialog(true);
@@ -214,19 +211,17 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
     const dataToSave: ProductFormData = { ...formData, store_links: formStoreLinks.map(({name, url}) => ({name, url})).filter(link => link.name && link.url)};
     try {
       setAutoSaveStatus('saving');
-      await onSave(activeDraftId, dataToSave); // Ensure latest data is saved
+      await onSave(activeDraftId, dataToSave);
       previousFormDataRef.current = dataToSave;
       setAutoSaveStatus('saved');
-
-      await onPublish(activeDraftId); // This will close the dialog on success (handled by parent)
-      // No need to call showToast here as parent will handle it or onPublish success implies dialog closure.
+      await onPublish(activeDraftId);
     } catch (error) {
       console.error('Error during publish pre-save or publish:', error);
       setAutoSaveStatus('error');
-      showToast('Failed to publish.', 'error');
+      showToast('Gagal menerbitkan.', 'error');
     } finally {
       setIsPublishing(false);
-      setShowPublishDialog(false); // Ensure dialog closes even on error from onPublish
+      setShowPublishDialog(false);
     }
   };
 
@@ -240,16 +235,16 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
         return <CheckCircleIcon className="w-4 h-4 text-green-400" />;
       case 'error':
         return <ExclamationCircleIcon className="w-4 h-4 text-red-400" />;
-      default: // idle
+      default:
         return <div className="w-2 h-2 rounded-full bg-zinc-500" />;
     }
   };
 
   const statusText =
-    effectiveStatus === 'saving' ? 'Saving...' :
-    effectiveStatus === 'saved' ? 'All changes saved' :
-    effectiveStatus === 'error' ? 'Save failed' :
-    'Up to date';
+    effectiveStatus === 'saving' ? 'Menyimpan...' :
+    effectiveStatus === 'saved' ? 'Semua perubahan disimpan' :
+    effectiveStatus === 'error' ? 'Gagal menyimpan' :
+    'Tersimpan';
 
   return (
     <Toast.Provider swipeDirection="right">
@@ -259,10 +254,10 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-red-500 to-red-700 bg-clip-text text-transparent mb-2">
-                  Product Editor
+                  Editor Produk
                 </h1>
                 <div className="flex items-center gap-3">
-                  <span className="text-sm text-gray-400">Draft ID:</span>
+                  <span className="text-sm text-gray-400">ID Draf:</span>
                   <code className="bg-gray-700 text-red-300 px-3 py-1 rounded-full text-xs font-mono">
                     ...{activeDraftId.slice(-8)}
                   </code>
@@ -287,7 +282,7 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
               <Form.Field name="name" className="space-y-2">
                 <Form.Label asChild>
                   <Label.Root className="block text-sm font-medium text-red-400 mb-3">
-                    Product Name *
+                    Nama Produk *
                   </Label.Root>
                 </Form.Label>
                 <Form.Control asChild>
@@ -298,23 +293,23 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
                     onChange={handleChange}
                     required
                     className="w-full bg-gray-800/50 border border-gray-600 rounded-2xl px-4 py-4 text-white placeholder-gray-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 focus:outline-none transition-all duration-200 text-lg"
-                    placeholder="Enter product name"
+                    placeholder="Masukkan nama produk"
                   />
                 </Form.Control>
                 <Form.Message match="valueMissing" className="text-red-400 text-sm mt-1">
-                  Please enter a product name
+                  Harap masukkan nama produk
                 </Form.Message>
               </Form.Field>
 
               <Form.Field name="category" className="space-y-2">
                 <Form.Label asChild>
                   <Label.Root className="block text-sm font-medium text-red-400 mb-3">
-                    Product Category
+                    Kategori Produk
                   </Label.Root>
                 </Form.Label>
                 <Select.Root value={formData.product_type_id || ''} onValueChange={handleSelectChange}>
                   <Select.Trigger className="w-full bg-gray-800/50 border border-gray-600 rounded-2xl px-4 py-4 text-white focus:border-red-500 focus:ring-2 focus:ring-red-500/20 focus:outline-none transition-all duration-200 flex items-center justify-between">
-                    <Select.Value placeholder="Choose a category" />
+                    <Select.Value placeholder="Pilih kategori" />
                     <Select.Icon>
                       <ChevronDownIcon className="w-5 h-5 text-gray-400" />
                     </Select.Icon>
@@ -345,7 +340,7 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
               <Form.Field name="description" className="space-y-2">
                 <Form.Label asChild>
                   <Label.Root className="block text-sm font-medium text-red-400 mb-3">
-                    Product Description
+                    Deskripsi Produk
                   </Label.Root>
                 </Form.Label>
                 <Form.Control asChild>
@@ -355,14 +350,14 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
                     value={formData.description || ''}
                     onChange={handleChange}
                     className="w-full bg-gray-800/50 border border-gray-600 rounded-2xl px-4 py-4 text-white placeholder-gray-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 focus:outline-none transition-all duration-200 resize-none"
-                    placeholder="Describe your product features, benefits, and specifications..."
+                    placeholder="Jelaskan fitur, manfaat, dan spesifikasi produk Anda..."
                   />
                 </Form.Control>
               </Form.Field>
 
               <div className="space-y-4">
                 <Label.Root className="block text-sm font-medium text-red-400">
-                  Product Images
+                  Gambar Produk
                 </Label.Root>
                 <div className="relative">
                   <input
@@ -390,13 +385,13 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
                             style={{ transform: `translateX(-${100 - uploadProgress}%)` }}
                           />
                         </Progress.Root>
-                        <span className="text-red-400 font-medium">Uploading {Math.round(uploadProgress)}%</span>
+                        <span className="text-red-400 font-medium">Mengunggah {Math.round(uploadProgress)}%</span>
                       </div>
                     ) : (
                       <div className="flex flex-col items-center gap-2">
                         <PhotoIcon className="w-8 h-8 text-gray-400" />
-                        <span className="text-gray-400 font-medium">Click to upload images</span>
-                        <span className="text-xs text-gray-500">PNG, JPG, WebP up to 10MB each</span>
+                        <span className="text-gray-400 font-medium">Klik untuk mengunggah gambar</span>
+                        <span className="text-xs text-gray-500">PNG, JPG, WebP, maks 10MB per file</span>
                       </div>
                     )}
                   </label>
@@ -408,7 +403,7 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
                         <div className="aspect-square bg-gray-700 rounded-xl overflow-hidden border border-gray-600">
                           <Image
                             src={url}
-                            alt={`Product image ${index + 1}`}
+                            alt={`Gambar produk ${index + 1}`}
                             width={200}
                             height={200}
                             className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
@@ -427,7 +422,7 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
                           </Tooltip.Trigger>
                           <Tooltip.Portal>
                             <Tooltip.Content className="bg-gray-800 text-white px-2 py-1 rounded text-sm z-[70]" sideOffset={5}>
-                              Remove image
+                              Hapus gambar
                               <Tooltip.Arrow className="fill-gray-800" />
                             </Tooltip.Content>
                           </Tooltip.Portal>
@@ -441,7 +436,7 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <Label.Root className="block text-sm font-medium text-red-400">
-                    Store Links
+                    Tautan Toko
                   </Label.Root>
                   <Tooltip.Root>
                     <Tooltip.Trigger asChild>
@@ -452,12 +447,12 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
                         className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <PlusIcon className="w-4 h-4" />
-                        Add Store
+                        Tambah Toko
                       </button>
                     </Tooltip.Trigger>
                     <Tooltip.Portal>
                       <Tooltip.Content className="bg-gray-800 text-white px-2 py-1 rounded text-sm z-[70]" sideOffset={5}>
-                        Add a new store link
+                        Tambah tautan toko baru
                         <Tooltip.Arrow className="fill-gray-800" />
                       </Tooltip.Content>
                     </Tooltip.Portal>
@@ -468,10 +463,10 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
                     <div key={link.id} className="bg-gray-700/30 rounded-2xl p-4 border border-gray-600/50">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <Label.Root className="block text-xs text-gray-400 mb-2">Store Name</Label.Root>
+                          <Label.Root className="block text-xs text-gray-400 mb-2">Nama Toko</Label.Root>
                           <input
                             type="text"
-                            placeholder="e.g., Amazon, Shopee"
+                            placeholder="misalnya, Tokopedia, Shopee"
                             value={link.name}
                             onChange={(e) => updateStoreLink(link.id, 'name', e.target.value)}
                             disabled={isExternallySaving || isPublishing}
@@ -479,11 +474,11 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
                           />
                         </div>
                         <div>
-                          <Label.Root className="block text-xs text-gray-400 mb-2">Product URL</Label.Root>
+                          <Label.Root className="block text-xs text-gray-400 mb-2">URL Produk</Label.Root>
                           <div className="flex gap-2">
                             <input
                               type="url"
-                              placeholder="https://store.com/product"
+                              placeholder="https://toko.com/produk"
                               value={link.url}
                               onChange={(e) => updateStoreLink(link.id, 'url', e.target.value)}
                               disabled={isExternallySaving || isPublishing}
@@ -502,7 +497,7 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
                               </Tooltip.Trigger>
                               <Tooltip.Portal>
                                 <Tooltip.Content className="bg-gray-800 text-white px-2 py-1 rounded text-sm z-[70]" sideOffset={5}>
-                                  Remove store link
+                                  Hapus tautan toko
                                   <Tooltip.Arrow className="fill-gray-800" />
                                 </Tooltip.Content>
                               </Tooltip.Portal>
@@ -516,7 +511,7 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
                 {formStoreLinks.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
                     <LinkIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>No store links added yet</p>
+                    <p>Belum ada tautan toko yang ditambahkan</p>
                   </div>
                 )}
               </div>
@@ -531,7 +526,7 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
                 disabled={isExternallySaving || isPublishing}
                 className="px-6 py-3 text-gray-300 hover:text-white hover:bg-gray-700/50 rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed border border-gray-600"
               >
-                Cancel
+                Batal
               </button>
               <button
                 type="button"
@@ -542,12 +537,12 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
                 {autoSaveStatus === 'saving' && !isPublishing && !isExternallySaving ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Saving...
+                    Menyimpan...
                   </>
                 ) : (
                   <>
                     <DocumentArrowUpIcon className="w-4 h-4" />
-                    Save Draft
+                    Simpan Draf
                   </>
                 )}
               </button>
@@ -560,12 +555,12 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
                 {isPublishing ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Publishing...
+                    Menerbitkan...
                   </>
                 ) : (
                   <>
                     <RocketLaunchIcon className="w-4 h-4" />
-                    Publish Product
+                    Terbitkan Produk
                   </>
                 )}
               </button>
@@ -578,15 +573,15 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
             <AlertDialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]" />
             <AlertDialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gray-900 rounded-xl p-6 w-full max-w-md z-[70] border border-gray-700 shadow-2xl">
               <AlertDialog.Title className="text-lg font-semibold text-white mb-2">
-                Publish Product
+                Terbitkan Produk
               </AlertDialog.Title>
               <AlertDialog.Description className="text-gray-400 mb-6">
-                Are you sure you want to publish &quot;{formData.name || 'this product'}&quot;? This will make it visible to all users.
+                Apakah Anda yakin ingin menerbitkan &rdquo;{formData.name || 'produk ini'}&rdquo;? Tindakan ini akan membuatnya terlihat oleh semua pengguna.
               </AlertDialog.Description>
               <div className="flex gap-3 justify-end">
                 <AlertDialog.Cancel asChild>
                   <button className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors">
-                    Cancel
+                    Batal
                   </button>
                 </AlertDialog.Cancel>
                 <AlertDialog.Action asChild>
@@ -594,7 +589,7 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
                     onClick={confirmPublish}
                     className="px-4 py-2 bg-red-700 hover:bg-red-800 text-white rounded-lg transition-colors"
                   >
-                    Yes, Publish
+                    Ya, Terbitkan
                   </button>
                 </AlertDialog.Action>
               </div>
@@ -612,7 +607,7 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
           onOpenChange={setToastOpen}
         >
           <Toast.Title className="font-medium mb-1">
-            {toastType === 'success' ? 'Success' : 'Error'}
+            {toastType === 'success' ? 'Berhasil' : 'Gagal'}
           </Toast.Title>
           <Toast.Description className="text-sm opacity-90">
             {toastMessage}

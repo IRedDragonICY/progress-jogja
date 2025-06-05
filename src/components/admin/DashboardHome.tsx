@@ -105,16 +105,16 @@ export function DashboardHome({
       <div className="flex justify-between items-center mb-8">
         <div>
           <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent mb-2">
-            Dashboard Overview
+            Ringkasan Dasbor
           </h2>
-          <p className="text-slate-400">Monitor your products and manage your store</p>
+          <p className="text-slate-400">Pantau produk dan kelola toko Anda</p>
         </div>
 
         <Dialog.Trigger asChild>
             <button
                 className="relative px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold rounded-2xl transition-all duration-300 shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:-translate-y-0.5 flex items-center gap-2.5 border border-amber-400/20">
               <DocumentTextIcon className="w-5 h-5" />
-              <span>Drafts</span>
+              <span>Draf</span>
               {userDrafts.length > 0 && (
                 <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
                   {userDrafts.length}
@@ -126,32 +126,32 @@ export function DashboardHome({
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatsCard
-          title="Total Products"
+          title="Total Produk"
           value={products.length}
           icon={CubeIcon}
           gradient="from-blue-400 to-blue-600"
-          description="All products in system"
+          description="Semua produk dalam sistem"
         />
         <StatsCard
-          title="Published"
+          title="Diterbitkan"
           value={publishedProductsCount}
           icon={CheckCircleIcon}
           gradient="from-emerald-400 to-emerald-600"
-          description="Visible to customers"
+          description="Terlihat oleh pelanggan"
         />
         <StatsCard
-          title="Unpublished"
+          title="Tidak Diterbitkan"
           value={unpublishedProductsCount}
           icon={ClockIcon}
           gradient="from-amber-400 to-amber-600"
-          description="Hidden from customers"
+          description="Tersembunyi dari pelanggan"
         />
         <StatsCard
-          title="Product Types"
+          title="Tipe Produk"
           value={productTypes.length}
           icon={TagIcon}
           gradient="from-purple-400 to-purple-600"
-          description="Product categories"
+          description="Kategori produk"
         />
       </div>
 
@@ -162,8 +162,8 @@ export function DashboardHome({
               <PlusIcon className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-white">Quick Actions</h3>
-              <p className="text-slate-400 text-sm">Commonly used features</p>
+              <h3 className="text-xl font-bold text-white">Tindakan Cepat</h3>
+              <p className="text-slate-400 text-sm">Fitur yang sering digunakan</p>
             </div>
           </div>
 
@@ -174,28 +174,28 @@ export function DashboardHome({
               variant="primary"
               disabled={isProcessing}
             >
-              Create New Product
+              Buat Produk Baru
             </QuickActionButton>
 
             <QuickActionButton
               onClick={() => onSetActiveTab('products')}
               icon={CubeIcon}
             >
-              Manage Products
+              Kelola Produk
             </QuickActionButton>
 
             <QuickActionButton
               onClick={() => { onSetActiveTab('products'); }}
               icon={TagIcon}
             >
-              Manage Types
+              Kelola Tipe
             </QuickActionButton>
 
             <QuickActionButton
               onClick={() => onSetActiveTab('profile')}
               icon={BuildingStorefrontIcon}
             >
-              Edit Profile
+              Ubah Profil
             </QuickActionButton>
           </div>
         </div>
@@ -206,8 +206,8 @@ export function DashboardHome({
               <DocumentTextIcon className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-white">Recent Drafts</h3>
-              <p className="text-slate-400 text-sm">Your work in progress</p>
+              <h3 className="text-xl font-bold text-white">Draf Terbaru</h3>
+              <p className="text-slate-400 text-sm">Pekerjaan yang sedang berlangsung</p>
             </div>
           </div>
 
@@ -217,10 +217,10 @@ export function DashboardHome({
                 <div key={draft.id} className="group flex items-center justify-between p-4 bg-slate-700/30 backdrop-blur-sm rounded-2xl border border-slate-600/30 hover:border-slate-500/50 transition-all duration-300 hover:bg-slate-700/50">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-white truncate group-hover:text-red-300 transition-colors">
-                      {draft.name || "[Untitled Draft]"}
+                      {draft.name || "[Draf Tanpa Judul]"}
                     </p>
                     <p className="text-xs text-slate-400 mt-1">
-                      {new Date(draft.updated_at!).toLocaleDateString()}
+                      {new Date(draft.updated_at!).toLocaleDateString('id-ID')}
                     </p>
                   </div>
                   <button
@@ -228,7 +228,7 @@ export function DashboardHome({
                     className="ml-4 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-lg transition-all duration-200 flex items-center gap-1.5 opacity-0 group-hover:opacity-100"
                   >
                     <PencilIcon className="w-3 h-3" />
-                    Edit
+                    Ubah
                   </button>
                 </div>
               ))
@@ -237,12 +237,12 @@ export function DashboardHome({
                 <div className="w-16 h-16 bg-slate-700/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
                   <DocumentTextIcon className="w-8 h-8 text-slate-500" />
                 </div>
-                <p className="text-sm text-slate-400 mb-3">No recent drafts</p>
+                <p className="text-sm text-slate-400 mb-3">Tidak ada draf terbaru</p>
                 <button
                   onClick={onCreateNewProduct}
                   className="text-sm text-red-400 hover:text-red-300 font-medium transition-colors"
                 >
-                  Create your first draft →
+                  Buat draf pertama Anda →
                 </button>
               </div>
             )}

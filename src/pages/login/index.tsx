@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { supabase } from '@/lib/supabase';
 import * as Form from '@radix-ui/react-form';
@@ -19,6 +20,45 @@ interface AuthError {
   message: string;
 }
 
+const LogoPatternBackground = () => {
+  const logos = Array(20).fill(0);
+  const rows = Array(10).fill(0);
+
+  return (
+    <div className="absolute inset-0 z-0 overflow-hidden opacity-[0.03]">
+      <div className="absolute top-0 left-0 flex h-full w-full flex-col items-start justify-start gap-8">
+        {rows.map((_, rowIndex) => {
+          const isLeftScroll = rowIndex % 2 === 0;
+          const animationClass = isLeftScroll ? 'animate-scroll-left' : 'animate-scroll-right';
+          const animationDuration = isLeftScroll ? '180s' : '190s';
+
+          return (
+            <div key={rowIndex} className="relative flex w-full flex-nowrap">
+              <div
+                className={`flex flex-shrink-0 flex-nowrap items-center justify-around gap-8 ${animationClass}`}
+                style={{ animationDuration }}
+              >
+                {logos.map((_, logoIndex) => (
+                  <Image key={`a-${logoIndex}`} src="/progressjogja-logo.webp" alt="Progress Jogja Background Logo" height={40} width={170} className="h-10 w-auto max-w-none flex-shrink-0" />
+                ))}
+              </div>
+              <div
+                className={`flex flex-shrink-0 flex-nowrap items-center justify-around gap-8 ${animationClass}`}
+                style={{ animationDuration }}
+              >
+                {logos.map((_, logoIndex) => (
+                  <Image key={`b-${logoIndex}`} src="/progressjogja-logo.webp" alt="Progress Jogja Background Logo" height={40} width={170} className="h-10 w-auto max-w-none flex-shrink-0" />
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -28,8 +68,6 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-
-  // Forgot Password Modal States
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [isSendingReset, setIsSendingReset] = useState(false);
@@ -80,9 +118,9 @@ export default function LoginPage() {
 
       if (error) {
         console.error('Login error:', error);
-        setError(`Login failed: ${error.message}`);
+        setError(`Gagal masuk: ${error.message}`);
       } else if (data.user) {
-        setSuccess('Login successful! Redirecting...');
+        setSuccess('Berhasil masuk! Mengalihkan...');
         setTimeout(() => {
           router.replace('/admin');
         }, 1000);
@@ -90,7 +128,7 @@ export default function LoginPage() {
     } catch (error) {
       const authError = error as AuthError;
       console.error('Unexpected login error:', authError);
-      setError(`An unexpected error occurred: ${authError.message}`);
+      setError(`Terjadi kesalahan yang tidak terduga: ${authError.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -108,9 +146,9 @@ export default function LoginPage() {
       });
 
       if (error) {
-        setResetError(`Error: ${error.message}`);
+        setResetError(`Kesalahan: ${error.message}`);
       } else {
-        setResetSuccess('Password reset email sent! Check your inbox.');
+        setResetSuccess('Email pengaturan ulang kata sandi telah terkirim! Periksa kotak masuk Anda.');
         setTimeout(() => {
           setForgotPasswordOpen(false);
           setForgotEmail('');
@@ -119,7 +157,7 @@ export default function LoginPage() {
       }
     } catch (error) {
       const authError = error as AuthError;
-      setResetError(`Unexpected error: ${authError.message}`);
+      setResetError(`Kesalahan tak terduga: ${authError.message}`);
     } finally {
       setIsSendingReset(false);
     }
@@ -127,17 +165,14 @@ export default function LoginPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-gray-900 to-slate-800 animate-gradient-x">
+      <div className="min-h-screen flex items-center justify-center bg-gray-950">
         <div className="text-center space-y-6">
-          <div className="relative">
-            <div className="animate-spin rounded-full h-20 w-20 border-4 border-slate-700 border-t-red-500 mx-auto"></div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <ShieldCheckIcon className="w-8 h-8 text-red-500" />
-            </div>
+          <div className="relative w-20 h-20 mx-auto">
+             <Image src="/progressjogja-logo.webp" alt="Progress Jogja Logo" width={80} height={80} className="animate-pulse" priority />
           </div>
           <div className="space-y-2">
-            <h1 className="text-2xl font-bold text-white">Verifying Authentication</h1>
-            <p className="text-slate-400">Please wait while we check your session...</p>
+            <h1 className="text-2xl font-bold text-white">Memverifikasi Autentikasi</h1>
+            <p className="text-slate-400">Harap tunggu, kami sedang memeriksa sesi Anda...</p>
           </div>
         </div>
       </div>
@@ -145,31 +180,22 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-animated relative overflow-hidden">
-      {/* Dynamic Background decorative elements */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-red-900/20 via-transparent to-transparent animate-pulse"></div>
-      <div className="absolute top-0 left-0 w-72 h-72 bg-red-500/10 rounded-full blur-3xl animate-float"></div>
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-float-delayed"></div>
-      <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl animate-bounce-slow"></div>
-
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gray-950 relative overflow-hidden">
+      <LogoPatternBackground />
       <div className="relative w-full max-w-md z-10">
-        <div className="bg-gray-900/90 backdrop-blur-xl rounded-3xl border border-gray-700/50 shadow-2xl shadow-black/50 p-8 space-y-8">
-          {/* Header */}
+        <div className="bg-gray-900/80 backdrop-blur-md rounded-3xl border border-gray-700/50 shadow-2xl shadow-black/50 p-8 space-y-8">
           <div className="text-center space-y-4">
-            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-red-500 to-red-700 rounded-2xl flex items-center justify-center shadow-lg shadow-red-500/30">
-              <ShieldCheckIcon className="w-8 h-8 text-white" />
-            </div>
+            <Image src="/progressjogja-logo.webp" alt="Progress Jogja Logo" width={96} height={96} className="w-24 h-auto mx-auto mb-4" priority />
             <div className="space-y-2">
               <h1 className="text-3xl font-bold bg-gradient-to-r from-red-400 via-red-500 to-red-600 bg-clip-text text-transparent">
-                Welcome Back
+                Selamat Datang Kembali
               </h1>
               <p className="text-slate-400 text-sm">
-                Sign in to access your admin dashboard
+                Masuk untuk mengakses dasbor admin Anda
               </p>
             </div>
           </div>
 
-          {/* Error/Success Messages */}
           {error && (
             <div className="bg-red-900/50 border border-red-500/50 rounded-xl p-4 flex items-start gap-3">
               <ExclamationTriangleIcon className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
@@ -184,12 +210,10 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Login Form */}
           <Form.Root onSubmit={handleLogin} className="space-y-6">
-            {/* Email Field */}
             <Form.Field name="email" className="space-y-3">
               <Form.Label className="block text-sm font-semibold text-red-400">
-                Email Address
+                Alamat Email
               </Form.Label>
               <div className="relative">
                 <EnvelopeIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -206,18 +230,17 @@ export default function LoginPage() {
               </div>
               <Form.Message match="valueMissing" className="text-red-400 text-sm flex items-center gap-1">
                 <XMarkIcon className="w-4 h-4" />
-                Email address is required
+                Alamat email wajib diisi
               </Form.Message>
               <Form.Message match="typeMismatch" className="text-red-400 text-sm flex items-center gap-1">
                 <XMarkIcon className="w-4 h-4" />
-                Please enter a valid email address
+                Harap masukkan alamat email yang valid
               </Form.Message>
             </Form.Field>
 
-            {/* Password Field */}
             <Form.Field name="password" className="space-y-3">
               <Form.Label className="block text-sm font-semibold text-red-400">
-                Password
+                Kata Sandi
               </Form.Label>
               <div className="relative">
                 <LockClosedIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -245,22 +268,20 @@ export default function LoginPage() {
               </div>
               <Form.Message match="valueMissing" className="text-red-400 text-sm flex items-center gap-1">
                 <XMarkIcon className="w-4 h-4" />
-                Password is required
+                Kata sandi wajib diisi
               </Form.Message>
             </Form.Field>
 
-            {/* Forgot Password Link */}
             <div className="flex justify-end">
               <button
                 type="button"
                 onClick={() => setForgotPasswordOpen(true)}
                 className="text-sm text-red-400 hover:text-red-300 transition-colors font-medium hover:underline"
               >
-                Forgot your password?
+                Lupa kata sandi Anda?
               </button>
             </div>
 
-            {/* Submit Button */}
             <Form.Submit asChild>
               <button
                 type="submit"
@@ -270,12 +291,12 @@ export default function LoginPage() {
                 {isSubmitting ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Signing in...</span>
+                    <span>Masuk...</span>
                   </>
                 ) : (
                   <>
                     <ShieldCheckIcon className="w-5 h-5" />
-                    <span>Sign In</span>
+                    <span>Masuk</span>
                   </>
                 )}
               </button>
@@ -284,33 +305,29 @@ export default function LoginPage() {
 
           <Separator.Root className="bg-gray-700/50 h-px" />
 
-          {/* Footer */}
           <div className="text-center text-sm text-gray-400">
-            <p>Protected by enterprise-grade security</p>
+            <p>Dilindungi oleh keamanan tingkat perusahaan</p>
           </div>
         </div>
       </div>
 
-      {/* Forgot Password Modal */}
       <Dialog.Root open={forgotPasswordOpen} onOpenChange={setForgotPasswordOpen}>
         <Dialog.Portal>
           <Dialog.Overlay className="bg-black/80 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50" />
           <Dialog.Content className="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] fixed left-[50%] top-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%] bg-gray-900/95 backdrop-blur-xl border border-gray-700/50 rounded-3xl shadow-2xl shadow-black/50 p-8 duration-300">
             <div className="space-y-6">
-              {/* Modal Header */}
               <div className="text-center space-y-3">
                 <div className="mx-auto w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center">
                   <EnvelopeIcon className="w-6 h-6 text-white" />
                 </div>
                 <Dialog.Title className="text-2xl font-bold text-white">
-                  Reset Password
+                  Atur Ulang Kata Sandi
                 </Dialog.Title>
                 <Dialog.Description className="text-gray-400 text-sm">
-                  Enter your email address and we&apos;ll send you a link to reset your password.
+                  Masukkan alamat email Anda dan kami akan mengirimkan tautan untuk mengatur ulang kata sandi Anda.
                 </Dialog.Description>
               </div>
 
-              {/* Error/Success Messages for Reset */}
               {resetError && (
                 <div className="bg-red-900/50 border border-red-500/50 rounded-xl p-4 flex items-start gap-3">
                   <ExclamationTriangleIcon className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
@@ -325,11 +342,10 @@ export default function LoginPage() {
                 </div>
               )}
 
-              {/* Reset Form */}
               <Form.Root onSubmit={handleForgotPassword} className="space-y-4">
                 <Form.Field name="reset-email" className="space-y-2">
                   <Form.Label className="block text-sm font-semibold text-blue-400">
-                    Email Address
+                    Alamat Email
                   </Form.Label>
                   <div className="relative">
                     <EnvelopeIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -340,15 +356,15 @@ export default function LoginPage() {
                         onChange={(e) => setForgotEmail(e.target.value)}
                         required
                         className="w-full bg-gray-800/60 border border-gray-600/50 rounded-xl pl-12 pr-4 py-3 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-300"
-                        placeholder="Enter your email address"
+                        placeholder="Masukkan alamat email Anda"
                       />
                     </Form.Control>
                   </div>
                   <Form.Message match="valueMissing" className="text-red-400 text-sm">
-                    Email address is required
+                    Alamat email wajib diisi
                   </Form.Message>
                   <Form.Message match="typeMismatch" className="text-red-400 text-sm">
-                    Please enter a valid email address
+                    Harap masukkan alamat email yang valid
                   </Form.Message>
                 </Form.Field>
 
@@ -358,7 +374,7 @@ export default function LoginPage() {
                       type="button"
                       className="flex-1 px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-xl transition-all duration-200"
                     >
-                      Cancel
+                      Batal
                     </button>
                   </Dialog.Close>
                   <Form.Submit asChild>
@@ -370,10 +386,10 @@ export default function LoginPage() {
                       {isSendingReset ? (
                         <>
                           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          Sending...
+                          Mengirim...
                         </>
                       ) : (
-                        'Send Reset Link'
+                        'Kirim Tautan Reset'
                       )}
                     </button>
                   </Form.Submit>
@@ -391,66 +407,26 @@ export default function LoginPage() {
       </Dialog.Root>
 
       <style jsx global>{`
-        @keyframes gradient-x {
-          0%, 100% {
-            background-position: 0 50%;
-          }
-          50% {
-            background-position: 100% 50%;
-          }
+        @keyframes scroll-left {
+          from { transform: translateX(0%); }
+          to { transform: translateX(-100%); }
         }
 
-        @keyframes float {
-          0%, 100% {
-            transform: translateY(0px) rotate(0deg);
-          }
-          33% {
-            transform: translateY(-20px) rotate(1deg);
-          }
-          66% {
-            transform: translateY(10px) rotate(-1deg);
-          }
+        @keyframes scroll-right {
+          from { transform: translateX(-100%); }
+          to { transform: translateX(0%); }
+        }
+        
+        .animate-scroll-left {
+          animation-name: scroll-left;
+          animation-timing-function: linear;
+          animation-iteration-count: infinite;
         }
 
-        @keyframes float-delayed {
-          0%, 100% {
-            transform: translateY(0px) rotate(0deg);
-          }
-          33% {
-            transform: translateY(15px) rotate(-1deg);
-          }
-          66% {
-            transform: translateY(-10px) rotate(1deg);
-          }
-        }
-
-        @keyframes bounce-slow {
-          0%, 100% {
-            transform: translateY(0px) scale(1);
-          }
-          50% {
-            transform: translateY(-5px) scale(1.05);
-          }
-        }
-
-        .bg-gradient-animated {
-          background: linear-gradient(-45deg,
-          #0f172a, #1e293b, #374151, #111827,
-          #1f2937, #0f172a, #312e81, #1e1b4b);
-          background-size: 400% 400%;
-          animation: gradient-x 15s ease infinite;
-        }
-
-        .animate-float {
-          animation: float 8s ease-in-out infinite;
-        }
-
-        .animate-float-delayed {
-          animation: float-delayed 10s ease-in-out infinite;
-        }
-
-        .animate-bounce-slow {
-          animation: bounce-slow 6s ease-in-out infinite;
+        .animate-scroll-right {
+          animation-name: scroll-right;
+          animation-timing-function: linear;
+          animation-iteration-count: infinite;
         }
       `}</style>
     </div>
