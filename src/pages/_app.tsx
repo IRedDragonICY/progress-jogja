@@ -1,7 +1,9 @@
+// pages/_app.tsx
 import { AppProps } from 'next/app';
 import { Geist, Geist_Mono } from "next/font/google";
-import Layout from '../components/layout';
+import Layout from '../components/layout'; // Assuming this is your main app layout
 import "../app/globals.css";
+import 'leaflet/dist/leaflet.css'; // Leaflet CSS for MapPicker
 import { NextPageWithLayout } from '@/types/next-page';
 
 const geistSans = Geist({
@@ -19,7 +21,6 @@ type AppPropsWithLayout = AppProps & {
 };
 
 export default function MyApp({ Component, pageProps }: AppPropsWithLayout) {
-  // Use the layout defined at the page level, if available
   const getLayout = Component.getLayout || ((page) => page);
 
   return (
