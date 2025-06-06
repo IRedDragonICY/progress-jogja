@@ -1,4 +1,3 @@
-// lib/supabase.ts
 import { createClient } from '@supabase/supabase-js';
 import { Product, ProductType, ProductDraft, ProductFormData, StoreLinkItem, OrganizationProfileData } from '@/types/supabase';
 import { v4 as uuidv4 } from 'uuid';
@@ -10,7 +9,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const DEBUG_MODE = process.env.NODE_ENV === 'development';
 const debugLog = (...args: unknown[]) => DEBUG_MODE && console.log('[SupabaseClient]', ...args);
-export const ORG_PROFILE_ID_CONST = 'e7a9f2d8-5b8c-4f1e-8d0f-6c7a3b9e1d2f'; // Example Fixed UUID
+export const ORG_PROFILE_ID_CONST = 'e7a9f2d8-5b8c-4f1e-8d0f-6c7a3b9e1d2f';
 
 export const signOut = async (): Promise<void> => {
   const [{ error: supabaseSignOutError }] = await Promise.all([
@@ -224,17 +223,20 @@ const createNewProduct = async (payload: ProductPayload): Promise<Product> => {
   if (error) throw error; return data;
 };
 
-export const uploadProductImage = async (file: File): Promise<string> => {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error('User not authenticated.');
-  const fileName = `${uuidv4()}.${file.name.split('.').pop()}`;
-  const filePath = `product_images/${fileName}`;
-  const { error } = await supabase.storage.from('progress-jogja-bucket').upload(filePath, file, { cacheControl: '3600', upsert: false });
-  if (error) throw error;
-  const { data: urlData } = supabase.storage.from('progress-jogja-bucket').getPublicUrl(filePath);
-  if (!urlData?.publicUrl) throw new Error('Could not get public URL.');
-  return urlData.publicUrl;
+const uploadFileToStorage = async (file: File, folder: string): Promise<string> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error('User not authenticated.');
+    const fileName = `${uuidv4()}.${file.name.split('.').pop()}`;
+    const filePath = `${folder}/${fileName}`;
+    const { error } = await supabase.storage.from('progress-jogja-bucket').upload(filePath, file, { cacheControl: '3600', upsert: false });
+    if (error) throw error;
+    const { data: urlData } = supabase.storage.from('progress-jogja-bucket').getPublicUrl(filePath);
+    if (!urlData?.publicUrl) throw new Error('Could not get public URL.');
+    return urlData.publicUrl;
 };
+
+export const uploadProductImage = (file: File): Promise<string> => uploadFileToStorage(file, 'product_images');
+export const uploadPartnerLogo = (file: File): Promise<string> => uploadFileToStorage(file, 'partner_logos');
 
 
 export const getOrganizationProfile = async (force = false): Promise<OrganizationProfileData | null> => {
@@ -274,6 +276,7 @@ export const upsertOrganizationProfile = async (profileData: Partial<Organizatio
   dataToUpsert.phone_numbers = dataToUpsert.phone_numbers || [];
   dataToUpsert.social_media_links = dataToUpsert.social_media_links || [];
   dataToUpsert.organizational_structure = dataToUpsert.organizational_structure || [];
+  dataToUpsert.partnerships = dataToUpsert.partnerships || [];
 
 
   const result = await fetchWithRetry(async () => {
@@ -292,6 +295,5 @@ export const upsertOrganizationProfile = async (profileData: Partial<Organizatio
   CacheManager.invalidate(CACHE_KEYS.ORGANIZATION_PROFILE);
   return result;
 };
-
 
 export type { ProductFormData };

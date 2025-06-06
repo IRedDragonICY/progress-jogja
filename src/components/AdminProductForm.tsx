@@ -23,8 +23,24 @@ import {
   TrashIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
-  ClockIcon
+  ClockIcon,
+  ArrowsUpDownIcon
 } from '@heroicons/react/24/outline';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  rectSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface AdminProductFormProps {
   activeDraftId: string;
@@ -35,6 +51,69 @@ interface AdminProductFormProps {
   onCancel: () => void;
   isExternallySaving: boolean;
 }
+
+const SortableImage = ({ url, onRemove, isFirst, isDisabled }: { url: string; onRemove: (url: string) => void; isFirst: boolean, isDisabled: boolean }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: url, disabled: isDisabled });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : 1,
+    opacity: isDragging ? 0.3 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="relative group aspect-square">
+      <div className="aspect-square bg-gray-700 rounded-xl overflow-hidden border border-gray-600">
+        <Image
+          src={url}
+          alt="Gambar produk"
+          width={200}
+          height={200}
+          className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+        />
+      </div>
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab rounded-xl flex items-center justify-center"
+        aria-label="Geser untuk mengubah urutan"
+      >
+        <ArrowsUpDownIcon className="w-8 h-8 text-white/70" />
+      </div>
+      <Tooltip.Root>
+        <Tooltip.Trigger asChild>
+          <button
+            type="button"
+            onClick={() => onRemove(url)}
+            disabled={isDisabled}
+            className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed z-10"
+          >
+            <XMarkIcon className="w-4 h-4" />
+          </button>
+        </Tooltip.Trigger>
+        <Tooltip.Portal>
+          <Tooltip.Content className="bg-gray-800 text-white px-2 py-1 rounded text-sm z-[70]" sideOffset={5}>
+            Hapus gambar
+            <Tooltip.Arrow className="fill-gray-800" />
+          </Tooltip.Content>
+        </Tooltip.Portal>
+      </Tooltip.Root>
+      {isFirst && (
+        <div className="absolute bottom-0 left-0 right-0 p-1.5 bg-red-600/90 text-center z-10 rounded-b-xl">
+          <p className="text-white text-[10px] font-bold uppercase tracking-wider">Utama</p>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const getInitialFormData = (draftData?: Partial<ProductFormData>): ProductFormData => {
   return {
@@ -69,6 +148,7 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
   const [isPublishing, setIsPublishing] = useState(false);
 
   const previousFormDataRef = useRef<ProductFormData>(getInitialFormData(initialDraftData));
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToastMessage(message);
@@ -95,7 +175,7 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
     const prevComparable = { ...previousFormDataRef.current, store_links: previousFormDataRef.current.store_links?.filter(link => link.name && link.url) || [] };
 
     if (isEqual(dataToSave, prevComparable)) {
-      setAutoSaveStatus('idle');
+      if (autoSaveStatus === 'saving') setAutoSaveStatus('idle');
       return;
     }
 
@@ -109,7 +189,7 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
       console.error('Error autosaving draft:', error);
       setAutoSaveStatus('error');
     }
-  }, [onSave, activeDraftId, formStoreLinks, isExternallySaving, isPublishing]);
+  }, [onSave, activeDraftId, formStoreLinks, isExternallySaving, isPublishing, autoSaveStatus]);
 
   const debouncedAutoSave = useMemo(() => {
     return debounce(autoSaveLogic, 1500);
@@ -161,13 +241,26 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
     }
   };
 
-  const removeImage = (idx: number) => {
+  const removeImage = (urlToRemove: string) => {
     setFormData(p => {
-      const newImageUrls = (p.image_urls || []).filter((_, i) => i !== idx);
+      const newImageUrls = (p.image_urls || []).filter(url => url !== urlToRemove);
       debouncedAutoSave({ ...p, image_urls: newImageUrls });
       return { ...p, image_urls: newImageUrls };
     });
     showToast('Gambar dihapus');
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setFormData(p => {
+        const oldIndex = (p.image_urls || []).indexOf(active.id as string);
+        const newIndex = (p.image_urls || []).indexOf(over.id as string);
+        const reorderedImages = arrayMove(p.image_urls || [], oldIndex, newIndex);
+        debouncedAutoSave({ ...p, image_urls: reorderedImages });
+        return { ...p, image_urls: reorderedImages };
+      });
+    }
   };
 
   const addStoreLink = () => setFormStoreLinks(p => [...p, { id: uuidv4(), name: '', url: '' }]);
@@ -180,19 +273,8 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
 
   const handleManualSave = async () => {
     debouncedAutoSave.cancel();
-    setAutoSaveStatus('saving');
-    const dataToSave: ProductFormData = { ...formData, store_links: formStoreLinks.map(({name, url}) => ({name, url})).filter(link => link.name && link.url)};
-    try {
-      await onSave(activeDraftId, dataToSave);
-      previousFormDataRef.current = dataToSave;
-      setAutoSaveStatus('saved');
-      showToast('Draf berhasil disimpan!');
-      setTimeout(() => setAutoSaveStatus('idle'), 1500);
-    } catch (error) {
-      console.error('Error manually saving draft:', error);
-      setAutoSaveStatus('error');
-      showToast('Gagal menyimpan draf.', 'error');
-    }
+    await autoSaveLogic(formData);
+    showToast('Draf berhasil disimpan!');
   };
 
   const handlePublishClick = () => {
@@ -246,6 +328,8 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
     effectiveStatus === 'error' ? 'Gagal menyimpan' :
     'Tersimpan';
 
+  const isFormDisabled = isExternallySaving || isPublishing || isUploading;
+
   return (
     <Toast.Provider swipeDirection="right">
       <Tooltip.Provider>
@@ -292,7 +376,8 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
                     value={formData.name || ''}
                     onChange={handleChange}
                     required
-                    className="w-full bg-gray-800/50 border border-gray-600 rounded-2xl px-4 py-4 text-white placeholder-gray-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 focus:outline-none transition-all duration-200 text-lg"
+                    disabled={isFormDisabled}
+                    className="w-full bg-gray-800/50 border border-gray-600 rounded-2xl px-4 py-4 text-white placeholder-gray-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 focus:outline-none transition-all duration-200 text-lg disabled:opacity-50"
                     placeholder="Masukkan nama produk"
                   />
                 </Form.Control>
@@ -307,8 +392,8 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
                     Kategori Produk
                   </Label.Root>
                 </Form.Label>
-                <Select.Root value={formData.product_type_id || ''} onValueChange={handleSelectChange}>
-                  <Select.Trigger className="w-full bg-gray-800/50 border border-gray-600 rounded-2xl px-4 py-4 text-white focus:border-red-500 focus:ring-2 focus:ring-red-500/20 focus:outline-none transition-all duration-200 flex items-center justify-between">
+                <Select.Root value={formData.product_type_id || ''} onValueChange={handleSelectChange} disabled={isFormDisabled}>
+                  <Select.Trigger className="w-full bg-gray-800/50 border border-gray-600 rounded-2xl px-4 py-4 text-white focus:border-red-500 focus:ring-2 focus:ring-red-500/20 focus:outline-none transition-all duration-200 flex items-center justify-between disabled:opacity-50">
                     <Select.Value placeholder="Pilih kategori" />
                     <Select.Icon>
                       <ChevronDownIcon className="w-5 h-5 text-gray-400" />
@@ -349,7 +434,8 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
                     rows={5}
                     value={formData.description || ''}
                     onChange={handleChange}
-                    className="w-full bg-gray-800/50 border border-gray-600 rounded-2xl px-4 py-4 text-white placeholder-gray-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 focus:outline-none transition-all duration-200 resize-none"
+                    disabled={isFormDisabled}
+                    className="w-full bg-gray-800/50 border border-gray-600 rounded-2xl px-4 py-4 text-white placeholder-gray-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 focus:outline-none transition-all duration-200 resize-none disabled:opacity-50"
                     placeholder="Jelaskan fitur, manfaat, dan spesifikasi produk Anda..."
                   />
                 </Form.Control>
@@ -357,7 +443,7 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
 
               <div className="space-y-4">
                 <Label.Root className="block text-sm font-medium text-red-400">
-                  Gambar Produk
+                  Gambar Produk (Geser untuk mengubah urutan)
                 </Label.Root>
                 <div className="relative">
                   <input
@@ -365,16 +451,16 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
                     multiple
                     accept="image/*"
                     onChange={handleImageUpload}
-                    disabled={isUploading || isExternallySaving || isPublishing}
+                    disabled={isFormDisabled}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
                     id="image-upload"
                   />
                   <label
                     htmlFor="image-upload"
-                    className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-2xl transition-all duration-200 cursor-pointer ${
-                      isUploading || isExternallySaving || isPublishing
+                    className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-2xl transition-all duration-200 ${
+                      isFormDisabled
                         ? 'border-gray-600 bg-gray-800/50 cursor-not-allowed'
-                        : 'border-gray-600 bg-gray-700/30 hover:border-red-500 hover:bg-gray-700/50'
+                        : 'border-gray-600 bg-gray-700/30 hover:border-red-500 hover:bg-gray-700/50 cursor-pointer'
                     }`}
                   >
                     {isUploading ? (
@@ -397,39 +483,21 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
                   </label>
                 </div>
                 {(formData.image_urls || []).length > 0 && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {(formData.image_urls || []).map((url, index) => (
-                      <div key={url + index} className="relative group">
-                        <div className="aspect-square bg-gray-700 rounded-xl overflow-hidden border border-gray-600">
-                          <Image
-                            src={url}
-                            alt={`Gambar produk ${index + 1}`}
-                            width={200}
-                            height={200}
-                            className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                    <SortableContext items={formData.image_urls || []} strategy={rectSortingStrategy}>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {(formData.image_urls || []).map((url, index) => (
+                          <SortableImage
+                            key={url}
+                            url={url}
+                            onRemove={removeImage}
+                            isFirst={index === 0}
+                            isDisabled={isFormDisabled}
                           />
-                        </div>
-                        <Tooltip.Root>
-                          <Tooltip.Trigger asChild>
-                            <button
-                              type="button"
-                              onClick={() => removeImage(index)}
-                              disabled={isExternallySaving || isPublishing}
-                              className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              <XMarkIcon className="w-4 h-4" />
-                            </button>
-                          </Tooltip.Trigger>
-                          <Tooltip.Portal>
-                            <Tooltip.Content className="bg-gray-800 text-white px-2 py-1 rounded text-sm z-[70]" sideOffset={5}>
-                              Hapus gambar
-                              <Tooltip.Arrow className="fill-gray-800" />
-                            </Tooltip.Content>
-                          </Tooltip.Portal>
-                        </Tooltip.Root>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </SortableContext>
+                  </DndContext>
                 )}
               </div>
 
@@ -443,7 +511,7 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
                       <button
                         type="button"
                         onClick={addStoreLink}
-                        disabled={isExternallySaving || isPublishing}
+                        disabled={isFormDisabled}
                         className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <PlusIcon className="w-4 h-4" />
@@ -469,7 +537,7 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
                             placeholder="misalnya, Tokopedia, Shopee"
                             value={link.name}
                             onChange={(e) => updateStoreLink(link.id, 'name', e.target.value)}
-                            disabled={isExternallySaving || isPublishing}
+                            disabled={isFormDisabled}
                             className="w-full bg-gray-600/50 border border-gray-500 rounded-xl px-3 py-3 text-white placeholder-gray-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 focus:outline-none transition-all duration-200 disabled:opacity-50"
                           />
                         </div>
@@ -481,7 +549,7 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
                               placeholder="https://toko.com/produk"
                               value={link.url}
                               onChange={(e) => updateStoreLink(link.id, 'url', e.target.value)}
-                              disabled={isExternallySaving || isPublishing}
+                              disabled={isFormDisabled}
                               className="flex-1 bg-gray-600/50 border border-gray-500 rounded-xl px-3 py-3 text-white placeholder-gray-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 focus:outline-none transition-all duration-200 disabled:opacity-50"
                             />
                             <Tooltip.Root>
@@ -489,7 +557,7 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
                                 <button
                                   type="button"
                                   onClick={() => removeStoreLink(link.id)}
-                                  disabled={isExternallySaving || isPublishing}
+                                  disabled={isFormDisabled}
                                   className="p-3 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                   <TrashIcon className="w-5 h-5" />
@@ -576,7 +644,7 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
                 Terbitkan Produk
               </AlertDialog.Title>
               <AlertDialog.Description className="text-gray-400 mb-6">
-                Apakah Anda yakin ingin menerbitkan &rdquo;{formData.name || 'produk ini'}&rdquo;? Tindakan ini akan membuatnya terlihat oleh semua pengguna.
+                Apakah Anda yakin ingin menerbitkan ”{formData.name || 'produk ini'}”? Tindakan ini akan membuatnya terlihat oleh semua pengguna.
               </AlertDialog.Description>
               <div className="flex gap-3 justify-end">
                 <AlertDialog.Cancel asChild>

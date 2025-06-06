@@ -1,4 +1,3 @@
-// types/supabase.d.ts
 export interface ProductType {
   id: string;
   name: string;
@@ -71,8 +70,15 @@ export interface OrganizationMember {
   name: string;
 }
 
+export interface PartnershipItem {
+  id: string;
+  category: 'education_government' | 'industry';
+  name: string;
+  logo_url: string | null;
+}
+
 export interface OrganizationProfileData {
-  id?: string; // Fixed ID
+  id?: string;
   slogan: string | null;
   addresses: AddressItem[];
   phone_numbers: ContactItem[];
@@ -81,6 +87,7 @@ export interface OrganizationProfileData {
   vision: string | null;
   mission: string | null;
   organizational_structure: OrganizationMember[];
+  partnerships: PartnershipItem[];
   created_at?: string;
   updated_at?: string;
 }
