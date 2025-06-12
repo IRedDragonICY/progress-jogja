@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/router";
 import {
   signOut, supabase, getProductTypes, createProductType, deleteProductType,
@@ -48,6 +48,7 @@ export default function AdminPage() {
   const [toastOpen, setToastOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToastMessage(message);
@@ -419,6 +420,17 @@ export default function AdminPage() {
     openFormForNewProduct().catch(console.error);
   };
 
+  const filteredProducts = useMemo(() => {
+    if (!searchTerm) {
+      return products;
+    }
+    const lowercasedTerm = searchTerm.toLowerCase();
+    return products.filter(product =>
+      product.name.toLowerCase().includes(lowercasedTerm) ||
+      (product.description && product.description.toLowerCase().includes(lowercasedTerm))
+    );
+  }, [products, searchTerm]);
+
   const LoadingSpinner = () => (
     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-400"></div>
   );
@@ -561,7 +573,7 @@ export default function AdminPage() {
               />
 
               <ProductsTab
-                products={products}
+                products={filteredProducts}
                 userDrafts={userDrafts}
                 setShowDraftsDialog={setShowDraftsDialog}
                 onCreateNewProduct={handleCreateNewProduct}
@@ -574,6 +586,8 @@ export default function AdminPage() {
                 onAddType={handleAddProductType}
                 onDeleteType={handleDeleteProductType}
                 onUpdateType={handleUpdateProductType}
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
               />
 
               <ProfileTab
@@ -767,18 +781,13 @@ export default function AdminPage() {
                                     </AlertDialog.Description>
                                     <div className="flex gap-3 justify-end">
                                       <AlertDialog.Cancel asChild>
-                                        <button className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition-colors">
-                                          Batal
-                                        </button>
-                                      </AlertDialog.Cancel>
-                                      <AlertDialog.Action asChild>
                                         <button
                                           onClick={() => handleDeleteUserDraft(draft.id)}
                                           className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-colors"
                                         >
                                           Hapus
                                         </button>
-                                      </AlertDialog.Action>
+                                      </AlertDialog.Cancel>
                                     </div>
                                   </AlertDialog.Content>
                                 </AlertDialog.Portal>

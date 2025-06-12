@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { supabase } from '@/lib/supabase';
@@ -6,21 +6,23 @@ import * as Form from '@radix-ui/react-form';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Separator from '@radix-ui/react-separator';
 import {
-  XMarkIcon,
-  EyeIcon,
-  EyeSlashIcon,
-  EnvelopeIcon,
-  LockClosedIcon,
-  ShieldCheckIcon,
-  ExclamationTriangleIcon,
-  CheckCircleIcon
+  XMarkIcon, EyeIcon, EyeSlashIcon, EnvelopeIcon, LockClosedIcon,
+  ShieldCheckIcon, ExclamationTriangleIcon, CheckCircleIcon
 } from '@heroicons/react/24/outline';
 
-interface AuthError {
-  message: string;
+interface MemoizedLogoProps {
+  src: string;
+  alt: string;
+  height: number;
+  width: number;
+  className?: string;
 }
 
-const LogoPatternBackground = () => {
+const MemoizedLogo = memo(function MemoizedLogo({ src, alt, height, width, className }: MemoizedLogoProps) {
+  return <Image src={src} alt={alt} height={height} width={width} className={className} />;
+});
+
+const LogoPatternBackground = memo(function LogoPatternBackground() {
   const logos = Array(20).fill(0);
   const rows = Array(10).fill(0);
 
@@ -36,18 +38,18 @@ const LogoPatternBackground = () => {
             <div key={rowIndex} className="relative flex w-full flex-nowrap">
               <div
                 className={`flex flex-shrink-0 flex-nowrap items-center justify-around gap-8 ${animationClass}`}
-                style={{ animationDuration }}
+                style={{ animationDuration: animationDuration }}
               >
                 {logos.map((_, logoIndex) => (
-                  <Image key={`a-${logoIndex}`} src="/progressjogja-logo.webp" alt="Progress Jogja Background Logo" height={40} width={170} className="h-10 w-auto max-w-none flex-shrink-0" />
+                  <MemoizedLogo key={`a-${logoIndex}`} src="/progressjogja-logo.webp" alt="Progress Jogja Background Logo" height={40} width={170} className="h-10 w-auto max-w-none flex-shrink-0" />
                 ))}
               </div>
               <div
                 className={`flex flex-shrink-0 flex-nowrap items-center justify-around gap-8 ${animationClass}`}
-                style={{ animationDuration }}
+                style={{ animationDuration: animationDuration }}
               >
                 {logos.map((_, logoIndex) => (
-                  <Image key={`b-${logoIndex}`} src="/progressjogja-logo.webp" alt="Progress Jogja Background Logo" height={40} width={170} className="h-10 w-auto max-w-none flex-shrink-0" />
+                  <MemoizedLogo key={`b-${logoIndex}`} src="/progressjogja-logo.webp" alt="Progress Jogja Background Logo" height={40} width={170} className="h-10 w-auto max-w-none flex-shrink-0" />
                 ))}
               </div>
             </div>
@@ -56,8 +58,30 @@ const LogoPatternBackground = () => {
       </div>
     </div>
   );
-};
+});
 
+interface AlertMessageProps {
+  type: 'idle' | 'success' | 'error';
+  message: string;
+}
+
+const AlertMessage = ({ type, message }: AlertMessageProps) => {
+  if (!message) return null;
+  const isError = type === 'error';
+  const Icon = isError ? ExclamationTriangleIcon : CheckCircleIcon;
+  const baseClasses = 'border rounded-xl p-4 flex items-start gap-3';
+  const colorClasses = isError
+    ? 'bg-red-900/50 border-red-500/50 text-red-300'
+    : 'bg-green-900/50 border-green-500/50 text-green-300';
+  const iconColor = isError ? 'text-red-400' : 'text-green-400';
+
+  return (
+    <div className={`${baseClasses} ${colorClasses}`}>
+      <Icon className={`w-5 h-5 ${iconColor} mt-0.5 flex-shrink-0`} />
+      <div className="text-sm leading-relaxed">{message}</div>
+    </div>
+  );
+};
 
 export default function LoginPage() {
   const router = useRouter();
@@ -66,25 +90,18 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [status, setStatus] = useState<{ type: 'idle' | 'success' | 'error'; message: string }>({ type: 'idle', message: '' });
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [isSendingReset, setIsSendingReset] = useState(false);
-  const [resetError, setResetError] = useState('');
-  const [resetSuccess, setResetSuccess] = useState('');
+  const [resetStatus, setResetStatus] = useState<{ type: 'idle' | 'success' | 'error'; message: string }>({ type: 'idle', message: '' });
 
   useEffect(() => {
     const checkAuth = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (session?.user && !error) {
-          router.replace('/admin').catch(console.error);
-        } else {
-          setLoading(false);
-        }
-      } catch (e) {
-        console.error('Error checking auth session:', e);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        router.replace('/admin').catch(console.error);
+      } else {
         setLoading(false);
       }
     };
@@ -92,23 +109,20 @@ export default function LoginPage() {
     checkAuth().catch(console.error);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (session?.user) {
-           router.replace('/admin').catch(console.error);
-        } else {
-           setLoading(false);
-        }
+      if (session?.user) {
+        router.replace('/admin').catch(console.error);
+      } else {
+        setLoading(false);
+      }
     });
 
-    return () => {
-        subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, [router]);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setError('');
-    setSuccess('');
+    setStatus({ type: 'idle', message: '' });
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -117,28 +131,22 @@ export default function LoginPage() {
       });
 
       if (error) {
-        console.error('Login error:', error);
-        setError(`Gagal masuk: ${error.message}`);
+        setStatus({ type: 'error', message: `Gagal masuk: ${error.message}` });
       } else if (data.user) {
-        setSuccess('Berhasil masuk! Mengalihkan...');
-        setTimeout(() => {
-          router.replace('/admin');
-        }, 1000);
+        setStatus({ type: 'success', message: 'Berhasil masuk! Mengalihkan...' });
+        setTimeout(() => router.replace('/admin'), 1000);
       }
-    } catch (error) {
-      const authError = error as AuthError;
-      console.error('Unexpected login error:', authError);
-      setError(`Terjadi kesalahan yang tidak terduga: ${authError.message}`);
+    } catch (err) {
+      setStatus({ type: 'error', message: `Terjadi kesalahan: ${(err as Error).message}` });
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [email, password, router]);
 
-  const handleForgotPassword = async (e: React.FormEvent) => {
+  const handleForgotPassword = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSendingReset(true);
-    setResetError('');
-    setResetSuccess('');
+    setResetStatus({ type: 'idle', message: '' });
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim(), {
@@ -146,29 +154,28 @@ export default function LoginPage() {
       });
 
       if (error) {
-        setResetError(`Kesalahan: ${error.message}`);
+        setResetStatus({ type: 'error', message: `Kesalahan: ${error.message}` });
       } else {
-        setResetSuccess('Email pengaturan ulang kata sandi telah terkirim! Periksa kotak masuk Anda.');
+        setResetStatus({ type: 'success', message: 'Email pengaturan ulang kata sandi terkirim!' });
         setTimeout(() => {
           setForgotPasswordOpen(false);
           setForgotEmail('');
-          setResetSuccess('');
+          setResetStatus({ type: 'idle', message: '' });
         }, 2000);
       }
-    } catch (error) {
-      const authError = error as AuthError;
-      setResetError(`Kesalahan tak terduga: ${authError.message}`);
+    } catch (err) {
+      setResetStatus({ type: 'error', message: `Kesalahan tak terduga: ${(err as Error).message}` });
     } finally {
       setIsSendingReset(false);
     }
-  };
+  }, [forgotEmail]);
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-950">
         <div className="text-center space-y-6">
           <div className="relative w-20 h-20 mx-auto">
-             <Image src="/progressjogja-logo.webp" alt="Progress Jogja Logo" width={80} height={80} className="animate-pulse" priority />
+            <Image src="/progressjogja-logo.webp" alt="Progress Jogja Logo" width={80} height={80} className="animate-pulse" priority />
           </div>
           <div className="space-y-2">
             <h1 className="text-2xl font-bold text-white">Memverifikasi Autentikasi</h1>
@@ -196,238 +203,99 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {error && (
-            <div className="bg-red-900/50 border border-red-500/50 rounded-xl p-4 flex items-start gap-3">
-              <ExclamationTriangleIcon className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
-              <div className="text-red-300 text-sm leading-relaxed">{error}</div>
-            </div>
-          )}
-
-          {success && (
-            <div className="bg-green-900/50 border border-green-500/50 rounded-xl p-4 flex items-start gap-3">
-              <CheckCircleIcon className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
-              <div className="text-green-300 text-sm leading-relaxed">{success}</div>
-            </div>
-          )}
+          <AlertMessage type={status.type} message={status.message} />
 
           <Form.Root onSubmit={handleLogin} className="space-y-6">
             <Form.Field name="email" className="space-y-3">
-              <Form.Label className="block text-sm font-semibold text-red-400">
-                Alamat Email
-              </Form.Label>
+              <Form.Label className="block text-sm font-semibold text-red-400">Alamat Email</Form.Label>
               <div className="relative">
                 <EnvelopeIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <Form.Control asChild>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="w-full bg-gray-800/60 border border-gray-600/50 rounded-2xl pl-12 pr-4 py-4 text-white placeholder-gray-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 focus:outline-none transition-all duration-300 hover:border-gray-500/70"
-                    placeholder="admin@example.com"
-                  />
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full bg-gray-800/60 border border-gray-600/50 rounded-2xl pl-12 pr-4 py-4 text-white placeholder-gray-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 focus:outline-none transition-all duration-300 hover:border-gray-500/70" placeholder="admin@example.com" />
                 </Form.Control>
               </div>
-              <Form.Message match="valueMissing" className="text-red-400 text-sm flex items-center gap-1">
-                <XMarkIcon className="w-4 h-4" />
-                Alamat email wajib diisi
-              </Form.Message>
-              <Form.Message match="typeMismatch" className="text-red-400 text-sm flex items-center gap-1">
-                <XMarkIcon className="w-4 h-4" />
-                Harap masukkan alamat email yang valid
-              </Form.Message>
+              <Form.Message match="valueMissing" className="text-red-400 text-sm flex items-center gap-1"><XMarkIcon className="w-4 h-4" />Alamat email wajib diisi</Form.Message>
+              <Form.Message match="typeMismatch" className="text-red-400 text-sm flex items-center gap-1"><XMarkIcon className="w-4 h-4" />Harap masukkan alamat email yang valid</Form.Message>
             </Form.Field>
 
             <Form.Field name="password" className="space-y-3">
-              <Form.Label className="block text-sm font-semibold text-red-400">
-                Kata Sandi
-              </Form.Label>
+              <Form.Label className="block text-sm font-semibold text-red-400">Kata Sandi</Form.Label>
               <div className="relative">
                 <LockClosedIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <Form.Control asChild>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="w-full bg-gray-800/60 border border-gray-600/50 rounded-2xl pl-12 pr-12 py-4 text-white placeholder-gray-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 focus:outline-none transition-all duration-300 hover:border-gray-500/70"
-                    placeholder="••••••••••••"
-                  />
+                  <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required className="w-full bg-gray-800/60 border border-gray-600/50 rounded-2xl pl-12 pr-12 py-4 text-white placeholder-gray-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 focus:outline-none transition-all duration-300 hover:border-gray-500/70" placeholder="••••••••••••" />
                 </Form.Control>
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
-                >
-                  {showPassword ? (
-                    <EyeSlashIcon className="w-5 h-5" />
-                  ) : (
-                    <EyeIcon className="w-5 h-5" />
-                  )}
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors">
+                  {showPassword ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
                 </button>
               </div>
-              <Form.Message match="valueMissing" className="text-red-400 text-sm flex items-center gap-1">
-                <XMarkIcon className="w-4 h-4" />
-                Kata sandi wajib diisi
-              </Form.Message>
+              <Form.Message match="valueMissing" className="text-red-400 text-sm flex items-center gap-1"><XMarkIcon className="w-4 h-4" />Kata sandi wajib diisi</Form.Message>
             </Form.Field>
 
             <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={() => setForgotPasswordOpen(true)}
-                className="text-sm text-red-400 hover:text-red-300 transition-colors font-medium hover:underline"
-              >
-                Lupa kata sandi Anda?
-              </button>
+              <button type="button" onClick={() => setForgotPasswordOpen(true)} className="text-sm text-red-400 hover:text-red-300 transition-colors font-medium hover:underline">Lupa kata sandi Anda?</button>
             </div>
 
             <Form.Submit asChild>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full px-6 py-4 bg-gradient-to-r from-red-600 via-red-500 to-red-600 hover:from-red-700 hover:via-red-600 hover:to-red-700 text-white font-bold rounded-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-xl shadow-red-500/30 hover:shadow-red-500/40 hover:scale-[1.02] active:scale-[0.98]"
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Masuk...</span>
-                  </>
-                ) : (
-                  <>
-                    <ShieldCheckIcon className="w-5 h-5" />
-                    <span>Masuk</span>
-                  </>
-                )}
+              <button type="submit" disabled={isSubmitting} className="w-full px-6 py-4 bg-gradient-to-r from-red-600 via-red-500 to-red-600 hover:from-red-700 hover:via-red-600 hover:to-red-700 text-white font-bold rounded-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-xl shadow-red-500/30 hover:shadow-red-500/40 hover:scale-[1.02] active:scale-[0.98]">
+                {isSubmitting ? (<><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /><span>Masuk...</span></>) : (<><ShieldCheckIcon className="w-5 h-5" /><span>Masuk</span></>)}
               </button>
             </Form.Submit>
           </Form.Root>
 
           <Separator.Root className="bg-gray-700/50 h-px" />
-
-          <div className="text-center text-sm text-gray-400">
-            <p>Dilindungi oleh keamanan tingkat perusahaan</p>
-          </div>
+          <div className="text-center text-sm text-gray-400"><p>Dilindungi oleh keamanan tingkat perusahaan</p></div>
         </div>
       </div>
 
       <Dialog.Root open={forgotPasswordOpen} onOpenChange={setForgotPasswordOpen}>
         <Dialog.Portal>
           <Dialog.Overlay className="bg-black/80 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50" />
-          <Dialog.Content className="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] fixed left-[50%] top-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%] bg-gray-900/95 backdrop-blur-xl border border-gray-700/50 rounded-3xl shadow-2xl shadow-black/50 p-8 duration-300">
+          <Dialog.Content
+            className="fixed left-[50%] top-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%] bg-gray-900/95 backdrop-blur-xl border border-gray-700/50 rounded-3xl shadow-2xl shadow-black/50 p-8 duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
+          >
             <div className="space-y-6">
               <div className="text-center space-y-3">
-                <div className="mx-auto w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center">
-                  <EnvelopeIcon className="w-6 h-6 text-white" />
-                </div>
-                <Dialog.Title className="text-2xl font-bold text-white">
-                  Atur Ulang Kata Sandi
-                </Dialog.Title>
-                <Dialog.Description className="text-gray-400 text-sm">
-                  Masukkan alamat email Anda dan kami akan mengirimkan tautan untuk mengatur ulang kata sandi Anda.
-                </Dialog.Description>
+                <div className="mx-auto w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center"><EnvelopeIcon className="w-6 h-6 text-white" /></div>
+                <Dialog.Title className="text-2xl font-bold text-white">Atur Ulang Kata Sandi</Dialog.Title>
+                <Dialog.Description className="text-gray-400 text-sm">Masukkan alamat email Anda dan kami akan mengirimkan tautan untuk mengatur ulang kata sandi Anda.</Dialog.Description>
               </div>
 
-              {resetError && (
-                <div className="bg-red-900/50 border border-red-500/50 rounded-xl p-4 flex items-start gap-3">
-                  <ExclamationTriangleIcon className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
-                  <div className="text-red-300 text-sm leading-relaxed">{resetError}</div>
-                </div>
-              )}
-
-              {resetSuccess && (
-                <div className="bg-green-900/50 border border-green-500/50 rounded-xl p-4 flex items-start gap-3">
-                  <CheckCircleIcon className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
-                  <div className="text-green-300 text-sm leading-relaxed">{resetSuccess}</div>
-                </div>
-              )}
+              <AlertMessage type={resetStatus.type} message={resetStatus.message} />
 
               <Form.Root onSubmit={handleForgotPassword} className="space-y-4">
                 <Form.Field name="reset-email" className="space-y-2">
-                  <Form.Label className="block text-sm font-semibold text-blue-400">
-                    Alamat Email
-                  </Form.Label>
+                  <Form.Label className="block text-sm font-semibold text-blue-400">Alamat Email</Form.Label>
                   <div className="relative">
                     <EnvelopeIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <Form.Control asChild>
-                      <input
-                        type="email"
-                        value={forgotEmail}
-                        onChange={(e) => setForgotEmail(e.target.value)}
-                        required
-                        className="w-full bg-gray-800/60 border border-gray-600/50 rounded-xl pl-12 pr-4 py-3 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-300"
-                        placeholder="Masukkan alamat email Anda"
-                      />
+                      <input type="email" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} required className="w-full bg-gray-800/60 border border-gray-600/50 rounded-xl pl-12 pr-4 py-3 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-300" placeholder="Masukkan alamat email Anda" />
                     </Form.Control>
                   </div>
-                  <Form.Message match="valueMissing" className="text-red-400 text-sm">
-                    Alamat email wajib diisi
-                  </Form.Message>
-                  <Form.Message match="typeMismatch" className="text-red-400 text-sm">
-                    Harap masukkan alamat email yang valid
-                  </Form.Message>
+                  <Form.Message match="valueMissing" className="text-red-400 text-sm">Alamat email wajib diisi</Form.Message>
+                  <Form.Message match="typeMismatch" className="text-red-400 text-sm">Harap masukkan alamat email yang valid</Form.Message>
                 </Form.Field>
 
                 <div className="flex gap-3 pt-2">
-                  <Dialog.Close asChild>
-                    <button
-                      type="button"
-                      className="flex-1 px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-xl transition-all duration-200"
-                    >
-                      Batal
-                    </button>
-                  </Dialog.Close>
+                  <Dialog.Close asChild><button type="button" className="flex-1 px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-xl transition-all duration-200">Batal</button></Dialog.Close>
                   <Form.Submit asChild>
-                    <button
-                      type="submit"
-                      disabled={isSendingReset}
-                      className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                      {isSendingReset ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          Mengirim...
-                        </>
-                      ) : (
-                        'Kirim Tautan Reset'
-                      )}
+                    <button type="submit" disabled={isSendingReset} className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                      {isSendingReset ? (<><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Mengirim...</>) : ('Kirim Tautan Reset')}
                     </button>
                   </Form.Submit>
                 </div>
               </Form.Root>
             </div>
-
-            <Dialog.Close asChild>
-              <button className="absolute right-4 top-4 p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-800/50 rounded-lg transition-colors">
-                <XMarkIcon className="w-5 h-5" />
-              </button>
-            </Dialog.Close>
+            <Dialog.Close asChild><button className="absolute right-4 top-4 p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-800/50 rounded-lg transition-colors"><XMarkIcon className="w-5 h-5" /></button></Dialog.Close>
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
 
       <style jsx global>{`
-        @keyframes scroll-left {
-          from { transform: translateX(0%); }
-          to { transform: translateX(-100%); }
-        }
-
-        @keyframes scroll-right {
-          from { transform: translateX(-100%); }
-          to { transform: translateX(0%); }
-        }
-        
-        .animate-scroll-left {
-          animation-name: scroll-left;
-          animation-timing-function: linear;
-          animation-iteration-count: infinite;
-        }
-
-        .animate-scroll-right {
-          animation-name: scroll-right;
-          animation-timing-function: linear;
-          animation-iteration-count: infinite;
-        }
+        @keyframes scroll-left { from { transform: translateX(0%); } to { transform: translateX(-100%); } }
+        @keyframes scroll-right { from { transform: translateX(-100%); } to { transform: translateX(0%); } }
+        .animate-scroll-left { animation: scroll-left linear infinite; }
+        .animate-scroll-right { animation: scroll-right linear infinite; }
       `}</style>
     </div>
   );
