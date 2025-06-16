@@ -37,7 +37,7 @@
     "@radix-ui/react-switch": "^1.2.5",
     "@radix-ui/react-tooltip": "^1.2.7",
     "@tailwindcss/postcss": "^4",
-    "@types/jest": "^29.5.14",
+    "@types/jest": "^30.0.0",
     "@types/jsdom": "^21.1.7",
     "@types/leaflet": "^1.9.18",
     "@types/lodash": "^4.17.17",
