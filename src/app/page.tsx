@@ -1,5 +1,5 @@
-import Navbar from "../../components/tampilan/Navbar";
-import Footer from "../../components/tampilan/Footer";
+import Navbar from "../components/tampilan/Navbar";
+import Footer from "../components/tampilan/Footer";
 import Link from "next/link";
 
 export default function HomePage() {
@@ -268,4 +268,4 @@ export default function HomePage() {
       <Footer />
     </>
   );
-}
+} 
