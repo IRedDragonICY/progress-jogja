@@ -1,5 +1,7 @@
+'use client';
+
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import {
   signOut, supabase, getProductTypes, createProductType, deleteProductType,
   getProducts, deleteMasterProductAndDrafts, toggleProductPublishStatus, getUserDrafts,
@@ -91,7 +93,7 @@ export default function AdminPage() {
           if (isMounted) {
             setAuthInitialized(true);
             setLoading(false);
-            await router.replace('/login');
+            router.replace('/login');
           }
           return;
         }
@@ -103,7 +105,7 @@ export default function AdminPage() {
             setAuthInitialized(true);
             setLoading(false);
             if (!isLoggingOut) {
-              await router.replace('/login');
+              router.replace('/login');
             }
           } else if (session?.user) {
             setUser(session.user);
@@ -119,14 +121,14 @@ export default function AdminPage() {
         } else if (isMounted) {
           setAuthInitialized(true);
           setLoading(false);
-          await router.replace('/login');
+          router.replace('/login');
         }
 
       } catch {
         if (isMounted) {
           setAuthInitialized(true);
           setLoading(false);
-          await router.replace('/login');
+          router.replace('/login');
         }
       }
     };
@@ -168,7 +170,7 @@ export default function AdminPage() {
       setShowDraftsDialog(false);
       setOrganizationProfile(null);
       await signOut();
-      await router.replace("/login");
+      router.replace("/login");
     } catch {
       window.location.href = '/login';
     } finally {
@@ -742,7 +744,7 @@ export default function AdminPage() {
                                       Terbitkan Draf
                                     </AlertDialog.Title>
                                     <AlertDialog.Description className="text-slate-400 mb-6">
-                                      Apakah Anda yakin ingin menerbitkan “{draft.name || 'draf ini'}”? Tindakan ini akan membuatnya tersedia untuk publik.
+                                      Apakah Anda yakin ingin menerbitkan "{draft.name || 'draf ini'}"? Tindakan ini akan membuatnya tersedia untuk publik.
                                     </AlertDialog.Description>
                                     <div className="flex gap-3 justify-end">
                                       <AlertDialog.Cancel asChild>
@@ -777,7 +779,7 @@ export default function AdminPage() {
                                       Hapus Draf
                                     </AlertDialog.Title>
                                     <AlertDialog.Description className="text-slate-400 mb-6">
-                                      Apakah Anda yakin ingin menghapus “{draft.name || 'draf ini'}”? Tindakan ini tidak dapat dibatalkan.
+                                      Apakah Anda yakin ingin menghapus "{draft.name || 'draf ini'}"? Tindakan ini tidak dapat dibatalkan.
                                     </AlertDialog.Description>
                                     <div className="flex gap-3 justify-end">
                                       <AlertDialog.Cancel asChild>
@@ -851,4 +853,4 @@ export default function AdminPage() {
       `}</style>
     </Toast.Provider>
   );
-}
+} 

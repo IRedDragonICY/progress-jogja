@@ -1,6 +1,8 @@
+'use client';
+
 import React, { useState, useEffect, useCallback, memo } from 'react';
 import Image from 'next/image';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import * as Form from '@radix-ui/react-form';
 import * as Dialog from '@radix-ui/react-dialog';
@@ -100,7 +102,7 @@ export default function LoginPage() {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        router.replace('/admin').catch(console.error);
+        router.replace('/admin');
       } else {
         setLoading(false);
       }
@@ -110,7 +112,7 @@ export default function LoginPage() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        router.replace('/admin').catch(console.error);
+        router.replace('/admin');
       } else {
         setLoading(false);
       }
@@ -299,4 +301,4 @@ export default function LoginPage() {
       `}</style>
     </div>
   );
-}
+} 

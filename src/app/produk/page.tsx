@@ -187,25 +187,25 @@ export default function ProdukPage() {
       <header className="bg-white shadow-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <Link href="/tampilan" className="flex items-center space-x-3">
+            <Link href="/" className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center">
                 <span className="text-white font-bold text-lg">P</span>
               </div>
-              <h1 className="text-2xl font-bold text-gray-800">Progres Jogja</h1>
+              <h1 className="text-2xl font-bold text-gray-800">Progress Jogja</h1>
             </Link>
             
             <div className="flex items-center space-x-4">
               <nav className="hidden md:flex space-x-8">
-                <Link href="/tampilan" className="text-gray-600 hover:text-red-600 transition">
+                <Link href="/" className="text-gray-600 hover:text-red-600 transition">
                   Beranda
                 </Link>
                 <Link href="/produk" className="text-red-600 font-semibold">
                   Produk
                 </Link>
-                <Link href="/tampilan#tentang" className="text-gray-600 hover:text-red-600 transition">
-                  Tentang
+                <Link href="/#visimisi" className="text-gray-600 hover:text-red-600 transition">
+                  Visi Misi
                 </Link>
-                <Link href="/tampilan#kontak" className="text-gray-600 hover:text-red-600 transition">
+                <Link href="/#kontak" className="text-gray-600 hover:text-red-600 transition">
                   Kontak
                 </Link>
               </nav>
@@ -240,13 +240,13 @@ export default function ProdukPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link 
-              href="/tampilan#kontak" 
+              href="/#kontak" 
               className="bg-white text-red-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition"
             >
               Hubungi Kami
             </Link>
             <Link 
-              href="/tampilan" 
+              href="/" 
               className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-red-600 transition"
             >
               Kembali ke Beranda
@@ -631,7 +631,7 @@ export default function ProdukPage() {
             Hubungi kami sekarang untuk informasi lebih lanjut dan pemesanan
           </p>
           <Link
-            href="/tampilan#kontak"
+            href="/#kontak"
             className="inline-block bg-white text-red-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-gray-100 transition transform hover:scale-105"
           >
             Hubungi Kami Sekarang
@@ -646,13 +646,13 @@ export default function ProdukPage() {
             <div className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center">
               <span className="text-white font-bold text-lg">P</span>
             </div>
-            <h3 className="text-2xl font-bold">Progres Jogja</h3>
+            <h3 className="text-2xl font-bold">Progress Jogja</h3>
           </div>
           <p className="text-gray-400 mb-4">
             Menyajikan minuman tradisional dan herbal berkualitas tinggi untuk kesehatan dan kenikmatan Anda
           </p>
           <p className="text-sm text-gray-500">
-            © 2024 Progres Jogja. Semua hak dilindungi.
+            © 2024 Progress Jogja. Semua hak dilindungi.
           </p>
         </div>
       </footer>
