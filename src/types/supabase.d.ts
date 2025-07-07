@@ -1,14 +1,5 @@
 import type { User } from "@supabase/supabase-js";
 
-export interface CartItem {
-  product_id: string;
-  quantity: number;
-}
-
-export interface WishlistItem {
-  product_id: string;
-}
-
 export interface Address {
   id: string;
   label: string;
@@ -27,8 +18,6 @@ export interface Profile {
   full_name: string | null;
   avatar_url: string | null;
   addresses: Address[];
-  cart: CartItem[];
-  wishlist: WishlistItem[];
   role: 'admin' | 'user';
   updated_at: string;
 }
@@ -71,7 +60,7 @@ export interface ProductDraft {
   name: string;
   product_type_id: string | null;
   description: string | null;
-  price: number; // <--- SUDAH DIPERBAIKI: Tambahkan ini
+  price: number;
   image_urls: string[];
   store_links: StoreLinkItem[];
   created_at?: string;
@@ -84,7 +73,6 @@ export type ProductFormData = Omit<ProductDraft, 'id' | 'product_id' | 'user_id'
 export interface FormStoreLink extends StoreLinkItem {
   id: string;
 }
-
 
 export interface AddressItem {
   id: string;
@@ -132,4 +120,19 @@ export interface OrganizationProfileData {
   partnerships: PartnershipItem[];
   created_at?: string;
   updated_at?: string;
+}
+
+export interface CartItem {
+  id: string;
+  product_id: string;
+  quantity: number;
+  created_at: string;
+  products: Product;
+}
+
+export interface WishlistItem {
+  id: string;
+  product_id: string;
+  created_at: string;
+  products: Product;
 }

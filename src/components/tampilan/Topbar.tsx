@@ -33,28 +33,52 @@ export default function Topbar() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
+  const fetchCounts = async (userId: string) => {
+    const { count: cartItems } = await supabase.from('cart_items').select('*', { count: 'exact', head: true }).eq('user_id', userId);
+    const { count: wishlistItems } = await supabase.from('wishlists').select('*', { count: 'exact', head: true }).eq('user_id', userId);
+    setCartCount(cartItems || 0);
+    setWishlistCount(wishlistItems || 0);
+  };
+
   useEffect(() => {
     const fetchUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
         setUserProfile({ user, profile });
+        await fetchCounts(user.id);
+      } else {
+        setUserProfile(null);
+        setCartCount(0);
+        setWishlistCount(0);
       }
     };
     fetchUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-       if (event === 'SIGNED_OUT') {
+       if (event === 'SIGNED_IN' && session?.user) {
+           fetchUser();
+       } else if (event === 'SIGNED_OUT') {
            setUserProfile(null);
-       } else if (session?.user) {
-            fetchUser();
+           setCartCount(0);
+           setWishlistCount(0);
        }
     });
 
     return () => subscription.unsubscribe();
   }, [supabase]);
 
-  // Handle scroll effect for dynamic topbar
+    useEffect(() => {
+        const handleStorageChange = () => {
+            if (userProfile?.user?.id) {
+                fetchCounts(userProfile.user.id);
+            }
+        };
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, [userProfile]);
+
+
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
@@ -66,36 +90,8 @@ export default function Topbar() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push('/');
     router.refresh();
   };
-
-  // Fetch cart and wishlist counts
-  useEffect(() => {
-    const fetchCounts = async () => {
-      if (userProfile?.user?.id) {
-        // Fetch cart count
-        const { count: cartItems } = await supabase
-          .from('cart_items')
-          .select('*', { count: 'exact' })
-          .eq('user_id', userProfile.user.id);
-
-        // Fetch wishlist count
-        const { count: wishlistItems } = await supabase
-          .from('wishlists')
-          .select('*', { count: 'exact' })
-          .eq('user_id', userProfile.user.id);
-
-        setCartCount(cartItems || 0);
-        setWishlistCount(wishlistItems || 0);
-      } else {
-        setCartCount(0);
-        setWishlistCount(0);
-      }
-    };
-
-    fetchCounts();
-  }, [userProfile, supabase]);
 
   const navItems = [
     { href: '/', label: 'Beranda', icon: HomeIcon },
@@ -113,14 +109,12 @@ export default function Topbar() {
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            {/* Logo */}
             <div className="flex items-center">
               <Link href="/" className="text-2xl font-bold tracking-tight hover:scale-105 transition-transform duration-200">
                 Progress Jogja
               </Link>
             </div>
 
-            {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-1">
               {navItems.map((item) => (
                 <Link
@@ -143,12 +137,9 @@ export default function Topbar() {
               ))}
             </div>
 
-            {/* User Profile / Auth */}
             <div className="flex items-center gap-4">
-              {/* Wishlist and Cart Icons */}
               {userProfile && (
                 <div className="flex items-center gap-2">
-                  {/* Wishlist */}
                   <button
                     onClick={() => setIsWishlistOpen(true)}
                     className={`relative p-2 rounded-full transition-all duration-200 ${
@@ -165,7 +156,6 @@ export default function Topbar() {
                     )}
                   </button>
 
-                  {/* Cart */}
                   <button
                     onClick={() => setIsCartOpen(true)}
                     className={`relative p-2 rounded-full transition-all duration-200 ${
@@ -238,7 +228,6 @@ export default function Topbar() {
                 </Link>
               )}
 
-              {/* Mobile Menu Button */}
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 className={`md:hidden p-2 rounded-lg transition-colors ${
@@ -257,7 +246,6 @@ export default function Topbar() {
           </div>
         </div>
 
-        {/* Mobile Menu */}
         {isMobileMenuOpen && (
           <div className="md:hidden border-t border-gray-200/20 bg-white/95 backdrop-blur-md">
             <div className="px-4 py-3 space-y-1">
@@ -273,7 +261,6 @@ export default function Topbar() {
                 </Link>
               ))}
 
-              {/* Mobile Cart and Wishlist */}
               {userProfile && (
                 <>
                   <div className="h-px bg-gray-200 my-2" />
@@ -318,10 +305,8 @@ export default function Topbar() {
         )}
       </nav>
 
-      {/* Spacer to prevent content from hiding behind fixed topbar */}
       <div className="h-16"></div>
 
-      {/* Sidebar Components */}
       <WishlistSidebar
         isOpen={isWishlistOpen}
         onCloseAction={() => setIsWishlistOpen(false)}

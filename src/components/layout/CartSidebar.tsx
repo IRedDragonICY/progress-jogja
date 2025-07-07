@@ -15,24 +15,8 @@ import {
   ArrowRightIcon
 } from '@heroicons/react/24/outline';
 import type { User } from '@supabase/supabase-js';
+import type { CartItem } from '@/types/supabase';
 import Sidebar from '@/components/layout/Sidebar';
-
-interface CartItem {
-  id: string;
-  product_id: string;
-  quantity: number;
-  created_at: string;
-  products: {
-    id: string;
-    name: string;
-    price: number;
-    image_url: string;
-    description: string;
-    category: string;
-    stock: number;
-    weight: number;
-  };
-}
 
 interface CartSidebarProps {
   isOpen: boolean;
@@ -63,11 +47,8 @@ export default function CartSidebar({ isOpen, onCloseAction }: CartSidebarProps)
           id,
           name,
           price,
-          image_url,
-          description,
-          category,
-          stock,
-          weight
+          image_urls,
+          description
         )
       `)
       .eq('user_id', userId)
@@ -76,25 +57,39 @@ export default function CartSidebar({ isOpen, onCloseAction }: CartSidebarProps)
     if (error) {
       console.error('Error fetching cart:', error);
     } else {
-      setCartItems(data || []);
+      setCartItems((data as any[] as CartItem[]) || []);
       setSelectedItems(new Set(data?.map(item => item.id) || []));
     }
     setLoading(false);
   }, [supabase]);
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchUserAndData = async () => {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       if (currentUser) {
         setUser(currentUser);
         await fetchCart(currentUser.id);
+      } else {
+        setCartItems([]);
+        setLoading(false);
       }
     };
 
     if (isOpen) {
-      fetchUser();
+      fetchUserAndData();
     }
   }, [isOpen, supabase, fetchCart]);
+
+    useEffect(() => {
+        const handleStorageChange = async () => {
+            if (user?.id) {
+                await fetchCart(user.id);
+            }
+        };
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, [user, fetchCart]);
+
 
   const updateQuantity = async (cartId: string, newQuantity: number) => {
     if (newQuantity < 1) return;
@@ -134,6 +129,7 @@ export default function CartSidebar({ isOpen, onCloseAction }: CartSidebarProps)
         newSet.delete(cartId);
         return newSet;
       });
+      window.dispatchEvent(new Event('storage'));
     }
   };
 
@@ -148,6 +144,7 @@ export default function CartSidebar({ isOpen, onCloseAction }: CartSidebarProps)
       });
 
     if (!error) {
+        window.dispatchEvent(new Event('storage'));
       const notification = document.createElement('div');
       notification.className = 'fixed top-20 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-[60] animate-in slide-in-from-right';
       notification.textContent = 'Produk berhasil ditambahkan ke wishlist!';
@@ -179,18 +176,18 @@ export default function CartSidebar({ isOpen, onCloseAction }: CartSidebarProps)
     if (!error) {
       setCartItems(items => items.filter(item => !selectedItems.has(item.id)));
       setSelectedItems(new Set());
+       window.dispatchEvent(new Event('storage'));
     }
   };
 
   const calculateTotals = () => {
     const selectedCartItems = cartItems.filter(item => selectedItems.has(item.id));
     const subtotal = selectedCartItems.reduce((sum, item) => sum + (item.products.price * item.quantity), 0);
-    const totalWeight = selectedCartItems.reduce((sum, item) => sum + (item.products.weight * item.quantity), 0);
-    const shippingCost = totalWeight > 0 ? Math.max(15000, totalWeight * 1000) : 0;
+    const shippingCost = subtotal > 0 ? 15000 : 0;
     const tax = subtotal * 0.11;
     const total = subtotal + shippingCost + tax;
 
-    return { subtotal, shippingCost, tax, total, totalWeight, itemCount: selectedCartItems.length };
+    return { subtotal, shippingCost, tax, total, itemCount: selectedCartItems.length };
   };
 
   const { subtotal, shippingCost, tax, total, itemCount } = calculateTotals();
@@ -228,7 +225,6 @@ export default function CartSidebar({ isOpen, onCloseAction }: CartSidebarProps)
 
     return (
       <div className="p-4">
-        {/* Bulk Actions */}
         {selectedItems.size > 0 && (
           <div className="mb-4 p-3 bg-red-50/80 backdrop-blur-sm rounded-lg border border-red-100">
             <div className="flex items-center justify-between">
@@ -246,7 +242,6 @@ export default function CartSidebar({ isOpen, onCloseAction }: CartSidebarProps)
           </div>
         )}
 
-        {/* Items */}
         <div className="space-y-4">
           {cartItems.map((item) => (
             <div
@@ -263,7 +258,7 @@ export default function CartSidebar({ isOpen, onCloseAction }: CartSidebarProps)
 
                 <div className="flex-shrink-0">
                   <Image
-                    src={item.products.image_url}
+                    src={item.products.image_urls[0]}
                     alt={item.products.name}
                     width={60}
                     height={60}
@@ -280,9 +275,6 @@ export default function CartSidebar({ isOpen, onCloseAction }: CartSidebarProps)
                   </div>
                   <div className="text-xs text-gray-500 mt-1">
                     Rp {item.products.price.toLocaleString('id-ID')} / item
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    Stock: {item.products.stock} • {item.products.weight}g
                   </div>
                 </div>
               </div>
@@ -316,7 +308,7 @@ export default function CartSidebar({ isOpen, onCloseAction }: CartSidebarProps)
                   </span>
                   <button
                     onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                    disabled={item.quantity >= item.products.stock || updateLoading.has(item.id)}
+                    disabled={updateLoading.has(item.id)}
                     className="p-1 rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     <PlusIcon className="w-3 h-3" />
@@ -335,7 +327,6 @@ export default function CartSidebar({ isOpen, onCloseAction }: CartSidebarProps)
 
     return (
       <div className="p-4 space-y-4">
-        {/* Summary */}
         <div className="space-y-2 text-sm bg-white/60 backdrop-blur-sm rounded-lg p-3 border border-white/20">
           <div className="flex justify-between">
             <span className="text-gray-600">Subtotal ({itemCount} item)</span>
@@ -359,7 +350,6 @@ export default function CartSidebar({ isOpen, onCloseAction }: CartSidebarProps)
           </div>
         </div>
 
-        {/* Benefits */}
         <div className="space-y-2 text-xs text-gray-600 bg-white/40 backdrop-blur-sm rounded-lg p-3 border border-white/20">
           <div className="flex items-center gap-2">
             <TruckIcon className="w-3 h-3" />
@@ -371,7 +361,6 @@ export default function CartSidebar({ isOpen, onCloseAction }: CartSidebarProps)
           </div>
         </div>
 
-        {/* Actions */}
         <div className="space-y-2">
           <button
             disabled={selectedItems.size === 0}

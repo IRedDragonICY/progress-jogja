@@ -13,40 +13,9 @@ import {
 } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid';
 import type { User } from '@supabase/supabase-js';
+import type { WishlistItem } from '@/types/supabase';
 import Sidebar from '@/components/layout/Sidebar';
 
-interface WishlistItem {
-  id: string;
-  product_id: string;
-  created_at: string;
-  products: {
-    id: string;
-    name: string;
-    price: number;
-    image_url: string;
-    description: string;
-    category: string;
-    rating: number;
-    stock: number;
-  };
-}
-
-// Define the Supabase response type to fix TypeScript issues
-interface SupabaseWishlistResponse {
-  id: string;
-  product_id: string;
-  created_at: string;
-  products: {
-    id: string;
-    name: string;
-    price: number;
-    image_url: string;
-    description: string;
-    category: string;
-    rating: number;
-    stock: number;
-  }[];
-}
 
 interface WishlistSidebarProps {
   isOpen: boolean;
@@ -75,11 +44,8 @@ export default function WishlistSidebar({ isOpen, onCloseAction }: WishlistSideb
           id,
           name,
           price,
-          image_url,
-          description,
-          category,
-          rating,
-          stock
+          image_urls,
+          description
         )
       `)
       .eq('user_id', userId)
@@ -88,29 +54,37 @@ export default function WishlistSidebar({ isOpen, onCloseAction }: WishlistSideb
     if (error) {
       console.error('Error fetching wishlist:', error);
     } else {
-      // Transform Supabase response to match our interface
-      const transformedData: WishlistItem[] = (data as SupabaseWishlistResponse[])?.map(item => ({
-        ...item,
-        products: item.products[0] // Take first (and only) product from array
-      })) || [];
-      setWishlistItems(transformedData);
+      setWishlistItems((data as any[] as WishlistItem[]) || []);
     }
     setLoading(false);
   }, [supabase]);
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchUserAndData = async () => {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       if (currentUser) {
         setUser(currentUser);
         await fetchWishlist(currentUser.id);
+      } else {
+        setWishlistItems([]);
+        setLoading(false);
       }
     };
 
     if (isOpen) {
-      fetchUser();
+      fetchUserAndData();
     }
   }, [isOpen, supabase, fetchWishlist]);
+
+  useEffect(() => {
+    const handleStorageChange = async () => {
+      if (user?.id) {
+        await fetchWishlist(user.id);
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [user, fetchWishlist]);
 
   const removeFromWishlist = async (wishlistId: string) => {
     const { error } = await supabase
@@ -120,30 +94,28 @@ export default function WishlistSidebar({ isOpen, onCloseAction }: WishlistSideb
 
     if (!error) {
       setWishlistItems(items => items.filter(item => item.id !== wishlistId));
+      window.dispatchEvent(new Event('storage'));
     }
   };
 
   const addToCart = async (productId: string) => {
     if (!user) return;
 
-    const { error } = await supabase
-      .from('cart_items')
-      .insert({
-        user_id: user.id,
-        product_id: productId,
-        quantity: 1
-      });
-
-    if (!error) {
-      // Show success notification
-      const notification = document.createElement('div');
-      notification.className = 'fixed top-20 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-[60] animate-in slide-in-from-right';
-      notification.textContent = 'Produk berhasil ditambahkan ke keranjang!';
-      document.body.appendChild(notification);
-      setTimeout(() => {
-        notification.remove();
-      }, 3000);
+    const { data: existing } = await supabase.from('cart_items').select('id, quantity').eq('user_id', user.id).eq('product_id', productId).single();
+    if (existing) {
+        await supabase.from('cart_items').update({ quantity: existing.quantity + 1 }).eq('id', existing.id);
+    } else {
+        await supabase.from('cart_items').insert({ user_id: user.id, product_id: productId, quantity: 1 });
     }
+
+    window.dispatchEvent(new Event('storage'));
+    const notification = document.createElement('div');
+    notification.className = 'fixed top-20 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-[60] animate-in slide-in-from-right';
+    notification.textContent = 'Produk berhasil ditambahkan ke keranjang!';
+    document.body.appendChild(notification);
+    setTimeout(() => {
+      notification.remove();
+    }, 3000);
   };
 
   const handleSelectItem = (itemId: string) => {
@@ -167,6 +139,7 @@ export default function WishlistSidebar({ isOpen, onCloseAction }: WishlistSideb
     if (!error) {
       setWishlistItems(items => items.filter(item => !selectedItems.has(item.id)));
       setSelectedItems(new Set());
+       window.dispatchEvent(new Event('storage'));
     }
   };
 
@@ -203,7 +176,6 @@ export default function WishlistSidebar({ isOpen, onCloseAction }: WishlistSideb
 
     return (
       <div className="p-4">
-        {/* Bulk Actions */}
         {selectedItems.size > 0 && (
           <div className="mb-4 p-3 bg-red-50/80 backdrop-blur-sm rounded-lg border border-red-100">
             <div className="flex items-center justify-between">
@@ -221,7 +193,6 @@ export default function WishlistSidebar({ isOpen, onCloseAction }: WishlistSideb
           </div>
         )}
 
-        {/* Items */}
         <div className="space-y-4">
           {wishlistItems.map((item) => (
             <div
@@ -238,7 +209,7 @@ export default function WishlistSidebar({ isOpen, onCloseAction }: WishlistSideb
 
                 <div className="flex-shrink-0">
                   <Image
-                    src={item.products.image_url}
+                    src={item.products.image_urls[0]}
                     alt={item.products.name}
                     width={60}
                     height={60}
@@ -250,15 +221,8 @@ export default function WishlistSidebar({ isOpen, onCloseAction }: WishlistSideb
                   <h4 className="font-semibold text-gray-900 text-sm line-clamp-2">
                     {item.products.name}
                   </h4>
-                  <div className="flex items-center gap-1 mt-1">
-                    <StarIcon className="w-3 h-3 text-yellow-400 fill-current" />
-                    <span className="text-xs text-gray-600">{item.products.rating}</span>
-                  </div>
                   <div className="text-base font-bold text-red-600 mt-1">
                     Rp {item.products.price.toLocaleString('id-ID')}
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    Stock: {item.products.stock}
                   </div>
                 </div>
               </div>

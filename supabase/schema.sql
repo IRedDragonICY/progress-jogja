@@ -71,10 +71,25 @@ CREATE TABLE public.profiles (
   full_name TEXT,
   avatar_url TEXT,
   addresses jsonb DEFAULT '[]'::jsonb NOT NULL,
-  cart jsonb DEFAULT '[]'::jsonb NOT NULL,
-  wishlist jsonb DEFAULT '[]'::jsonb NOT NULL,
   role TEXT NOT NULL DEFAULT 'user',
   updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE public.cart_items (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    product_id uuid NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
+    quantity integer NOT NULL DEFAULT 1,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    CONSTRAINT cart_items_user_product_key UNIQUE (user_id, product_id)
+);
+
+CREATE TABLE public.wishlists (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    product_id uuid NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    CONSTRAINT wishlists_user_product_key UNIQUE (user_id, product_id)
 );
 
 CREATE TRIGGER on_products_update BEFORE UPDATE ON public.products FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
@@ -122,6 +137,8 @@ ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.product_drafts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.organization_profile ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.cart_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.wishlists ENABLE ROW LEVEL SECURITY;
 
 CREATE OR REPLACE FUNCTION is_admin()
 RETURNS BOOLEAN AS $$
@@ -140,6 +157,8 @@ CREATE POLICY "Users can manage their own drafts" ON public.product_drafts FOR A
 CREATE POLICY "Admins can manage all drafts" ON public.product_drafts FOR ALL USING (is_admin()) WITH CHECK (is_admin());
 CREATE POLICY "Organization profile is viewable by everyone" ON public.organization_profile FOR SELECT USING (true);
 CREATE POLICY "Admins have full access to organization profile" ON public.organization_profile FOR ALL USING (is_admin()) WITH CHECK (is_admin());
+CREATE POLICY "Users can manage their own cart" ON public.cart_items FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can manage their own wishlist" ON public.wishlists FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES ('progress-jogja-bucket', 'progress-jogja-bucket', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
