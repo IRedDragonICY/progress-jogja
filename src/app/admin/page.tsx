@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
-  signOut, supabase, getProductTypes, createProductType, deleteProductType,
+  signOut, getProductTypes, createProductType, deleteProductType,
   getProducts, deleteMasterProductAndDrafts, toggleProductPublishStatus, getUserDrafts,
   createOrUpdateDraft, deleteDraft, deleteAllUserDrafts, publishDraft, ProductFormData,
   getOrganizationProfile, upsertOrganizationProfile, updateProductType, getUserWithProfile

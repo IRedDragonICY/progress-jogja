@@ -1,63 +1,77 @@
-import { createServerClient } from '@supabase/ssr';
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-
-const protectedRoutes = ['/admin', '/profile'];
-const authRoutes = ['/login', '/register'];
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(req: NextRequest) {
-  const response = NextResponse.next({
+  const res = NextResponse.next({
     request: {
       headers: req.headers,
     },
-  });
+  })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return req.cookies.getAll();
+        get(name: string) {
+          return req.cookies.get(name)?.value
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+        set(name: string, value: string, options: CookieOptions) {
+          res.cookies.set({
+            name,
+            value,
+            ...options,
+          })
+        },
+        remove(name: string, options: CookieOptions) {
+          res.cookies.set({
+            name,
+            value: '',
+            ...options,
+          })
         },
       },
     }
-  );
+  )
 
   const { data: { session } } = await supabase.auth.getSession();
-  const { pathname } = req.nextUrl;
   const user = session?.user;
+  const { pathname } = req.nextUrl;
+
+  const authRoutes = ['/login', '/register'];
+  const protectedRoutes = ['/admin', '/profile'];
 
   if (user) {
-    // Membaca 'role' langsung dari JWT, bukan dari database
-    const isAdmin = user.app_metadata?.role === 'admin';
-    const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
 
-    if (isAuthRoute) {
-      const redirectPath = isAdmin ? '/admin' : '/';
-      return NextResponse.redirect(new URL(redirectPath, req.url));
+    const isAdmin = profile?.role === 'admin';
+
+    if (authRoutes.some(route => pathname.startsWith(route))) {
+      return NextResponse.redirect(new URL(isAdmin ? '/admin' : '/', req.url));
     }
 
-    if (!isAdmin && pathname.startsWith('/admin')) {
+    if (pathname.startsWith('/admin') && !isAdmin) {
       return NextResponse.redirect(new URL('/', req.url));
     }
   } else {
-    const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
-    if (isProtectedRoute) {
+    if (protectedRoutes.some(route => pathname.startsWith(route))) {
       const redirectUrl = new URL('/login', req.url);
-      redirectUrl.searchParams.set('redirect_to', pathname);
+      if (pathname) {
+          redirectUrl.searchParams.set('redirect_to', pathname);
+      }
       return NextResponse.redirect(redirectUrl);
     }
   }
 
-  return response;
+  return res;
 }
 
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico|public|.*\..*).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|public|.*\\..*).*)',
   ],
-};
+}
