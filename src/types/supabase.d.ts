@@ -1,3 +1,35 @@
+import type { User } from "@supabase/supabase-js";
+
+// DEFINISI BARU UNTUK ALAMAT PENGGUNA
+export interface Address {
+  id: string;
+  label: string;
+  recipient_name: string;
+  recipient_phone: string;
+  full_address: string;
+  postal_code: string;
+  latitude: number | null;
+  longitude: number | null;
+  is_primary: boolean;
+  courier_notes?: string;
+}
+
+// INTERFACE PROFILE YANG DIPERBARUI
+export interface Profile {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  addresses: Address[]; // <-- Penambahan properti ini
+  role: 'admin' | 'user';
+  updated_at: string;
+}
+
+export interface UserWithProfile {
+  user: User;
+  profile: Profile;
+}
+
+// SISA TIPE TETAP SAMA
 export interface ProductType {
   id: string;
   name: string;
@@ -71,7 +103,7 @@ export interface OrganizationMember {
 }
 
 export interface PartnershipItem {
-  id: string;
+  id:string;
   category: 'education_government' | 'industry';
   name: string;
   logo_url: string | null;
