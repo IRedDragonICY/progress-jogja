@@ -24,7 +24,7 @@ export interface Profile {
 
 export interface UserWithProfile {
   user: User;
-  profile: Profile;
+  profile: Profile | null;
 }
 
 export interface ProductType {
