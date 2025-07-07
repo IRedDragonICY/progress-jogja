@@ -145,6 +145,29 @@ RETURNS BOOLEAN AS $$
   SELECT auth.jwt() ->> 'role' = 'admin';
 $$ LANGUAGE sql STABLE;
 
+DROP FUNCTION IF EXISTS public.get_project_usage();
+CREATE OR REPLACE FUNCTION public.get_project_usage()
+RETURNS jsonb
+LANGUAGE sql
+SECURITY DEFINER
+AS $$
+  SELECT
+    CASE
+      WHEN is_admin() THEN
+        jsonb_build_object(
+          'database_size_bytes', db.size,
+          'storage_size_bytes', storage.size,
+          'total_used_bytes', db.size + storage.size
+        )
+      ELSE
+        '{"error": "Unauthorized"}'::jsonb
+    END
+  FROM
+    (SELECT pg_database_size(current_database()) AS size) AS db,
+    (SELECT COALESCE(SUM((metadata->>'size')::bigint), 0) FROM storage.objects WHERE bucket_id = 'progress-jogja-bucket') AS storage(size);
+$$;
+GRANT EXECUTE ON FUNCTION public.get_project_usage() TO authenticated;
+
 CREATE POLICY "Users can view all profiles" ON public.profiles FOR SELECT USING (true);
 CREATE POLICY "Users can insert their own profile" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
 CREATE POLICY "Users can update their own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);

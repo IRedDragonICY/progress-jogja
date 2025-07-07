@@ -136,3 +136,12 @@ export interface WishlistItem {
   created_at: string;
   products: Product;
 }
+
+export interface StorageUsageData {
+  database_size_bytes: number;
+  storage_size_bytes: number;
+  total_used_bytes: number;
+  total_project_limit_bytes: number;
+  available_size_bytes: number;
+  used_percentage: number;
+}

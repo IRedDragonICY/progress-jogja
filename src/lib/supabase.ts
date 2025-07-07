@@ -1,5 +1,5 @@
 import { createBrowserClient } from '@supabase/ssr';
-import { Product, ProductType, ProductDraft, ProductFormData, StoreLinkItem, OrganizationProfileData, Profile } from '@/types/supabase';
+import { Product, ProductType, ProductDraft, ProductFormData, StoreLinkItem, OrganizationProfileData, Profile, StorageUsageData } from '@/types/supabase';
 import { v4 as uuidv4 } from 'uuid';
 
 export const supabase = createBrowserClient(
@@ -133,23 +133,28 @@ export const uploadAvatar = async (userId: string, file: File): Promise<string> 
 };
 
 
-const CACHE_DURATION = 2 * 60 * 1000;
+const CACHE_DURATION_LONG = 2 * 60 * 1000;
+const CACHE_DURATION_SHORT = 10 * 60 * 1000;
 const CACHE_KEYS = {
   PRODUCT_TYPES: 'cache_product_types',
   PRODUCTS: 'cache_products_all',
   USER_DRAFTS: 'cache_user_drafts',
   ORGANIZATION_PROFILE: `cache_org_profile_${ORG_PROFILE_ID_CONST}`,
+  STORAGE_USAGE: 'cache_storage_usage',
 } as const;
 
 interface CachedData<T> { data: T; timestamp: number; }
 
 class CacheManager {
   private static isClient = typeof window !== 'undefined';
-  static get<T>(key: string): T | null { if (!this.isClient) return null; try { const i = localStorage.getItem(key); if (!i) return null; const p = JSON.parse(i) as CachedData<T>; return this.isValid(p.timestamp) ? p.data : null; } catch { return null; }}
+  static get<T>(key: string): T | null { if (!this.isClient) return null; try { const i = localStorage.getItem(key); if (!i) return null; const p = JSON.parse(i) as CachedData<T>; return this.isValid(key, p.timestamp) ? p.data : null; } catch { return null; }}
   static set<T>(key: string, data: T): void { if (!this.isClient) return; try { localStorage.setItem(key, JSON.stringify({ data, timestamp: Date.now() })); } catch (e) { console.warn('Cache set error:', key, e); }}
   static invalidate(...keys: string[]): void { if (!this.isClient) return; keys.forEach(key => localStorage.removeItem(key));}
   static invalidateAll(): void { this.invalidate(...Object.values(CACHE_KEYS));}
-  private static isValid(timestamp: number): boolean { return Date.now() - timestamp < CACHE_DURATION;}
+  private static isValid(key: string, timestamp: number): boolean {
+      const duration = key === CACHE_KEYS.STORAGE_USAGE ? CACHE_DURATION_SHORT : CACHE_DURATION_LONG;
+      return Date.now() - timestamp < duration;
+  }
 }
 
 interface ProductDraftPayload extends Partial<ProductFormData> { user_id: string; product_id?: string | null; }
@@ -180,25 +185,6 @@ export const uploadProductImage = (file: File): Promise<string> => uploadFileToS
 export const uploadPartnerLogo = (file: File): Promise<string> => uploadFileToStorage(file, 'partner_logos');
 export const getOrganizationProfile = async (force = false): Promise<OrganizationProfileData | null> => { const k = CACHE_KEYS.ORGANIZATION_PROFILE; if (!force) { const c = CacheManager.get<OrganizationProfileData>(k); if (c) return c; } return fetchWithRetry(async () => { const { data, error } = await supabase.from('organization_profile').select('*').eq('id', ORG_PROFILE_ID_CONST).maybeSingle(); if (error) { console.error('Profile fetch error:', error); throw error; } const r = data ? data as OrganizationProfileData : null; if (r) { CacheManager.set(k, r); } return r;});};
 export const upsertOrganizationProfile = async (profileData: Partial<OrganizationProfileData>): Promise<OrganizationProfileData> => { const d = { ...profileData, id: ORG_PROFILE_ID_CONST, updated_at: new Date().toISOString(), addresses: profileData.addresses || [], phone_numbers: profileData.phone_numbers || [], social_media_links: profileData.social_media_links || [], organizational_structure: profileData.organizational_structure || [], partnerships: profileData.partnerships || []}; const r = await fetchWithRetry(async () => { const { data, error } = await supabase.from('organization_profile').upsert(d, { onConflict: 'id', ignoreDuplicates: false }).select().single(); if (error) { console.error('Profile upsert error:', error); throw error; } return data as OrganizationProfileData; }); CacheManager.invalidate(CACHE_KEYS.ORGANIZATION_PROFILE); return r;};
-
-// Helper function to convert product image filenames to proper Supabase storage URLs
-export const getProductImageUrl = (filename: string): string => {
-  // If it's already a full URL, return as-is
-  if (filename.startsWith('http://') || filename.startsWith('https://')) {
-    return filename;
-  }
-
-  // If it starts with a slash, it's a local path, return as-is
-  if (filename.startsWith('/')) {
-    return filename;
-  }
-
-  // Otherwise, it's a filename that needs to be converted to a Supabase storage URL
-  const { data } = supabase.storage
-    .from('progress-jogja-bucket')
-    .getPublicUrl(`produk/${filename}`);
-
-  return data.publicUrl;
-};
-
+export const getStorageUsage = async (force = false): Promise<StorageUsageData | null> => { if (!force) { const c = CacheManager.get<StorageUsageData>(CACHE_KEYS.STORAGE_USAGE); if (c) return c; } try { const { data: rawData, error } = await supabase.rpc('get_project_usage'); if (error) throw error; const total_project_limit_bytes = 5 * 1024 * 1024 * 1024; const total_used_bytes = rawData.total_used_bytes || 0; const result: StorageUsageData = { database_size_bytes: rawData.database_size_bytes || 0, storage_size_bytes: rawData.storage_size_bytes || 0, total_used_bytes: total_used_bytes, total_project_limit_bytes: total_project_limit_bytes, available_size_bytes: total_project_limit_bytes - total_used_bytes, used_percentage: total_project_limit_bytes > 0 ? (total_used_bytes / total_project_limit_bytes) * 100 : 0, }; CacheManager.set(CACHE_KEYS.STORAGE_USAGE, result); return result; } catch (err) { console.error("Error fetching storage usage via RPC:", err); return null; } };
+export const getProductImageUrl = (filename: string): string => { if (filename.startsWith('http://') || filename.startsWith('https://')) { return filename; } if (filename.startsWith('/')) { return filename; } const { data } = supabase.storage.from('progress-jogja-bucket').getPublicUrl(`produk/${filename}`); return data.publicUrl; };
 export type { ProductFormData };

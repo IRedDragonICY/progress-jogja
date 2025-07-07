@@ -5,10 +5,11 @@ import {
   signOut, getProductTypes, createProductType, deleteProductType,
   getProducts, deleteMasterProductAndDrafts, toggleProductPublishStatus, getUserDrafts,
   createOrUpdateDraft, deleteDraft, deleteAllUserDrafts, publishDraft, ProductFormData,
-  getOrganizationProfile, upsertOrganizationProfile, updateProductType, getUserWithProfile
+  getOrganizationProfile, upsertOrganizationProfile, updateProductType, getUserWithProfile,
+  getStorageUsage,
 } from "@/lib/supabase";
 import type { UserWithProfile } from "@/types/supabase";
-import type { Product, ProductType, ProductDraft, OrganizationProfileData } from "@/types/supabase";
+import type { Product, ProductType, ProductDraft, OrganizationProfileData, StorageUsageData } from "@/types/supabase";
 import AdminProductForm from "@/components/AdminProductForm";
 import { AdminTabs, type AdminTab } from "@/components/admin/AdminTabs";
 import { DashboardHome } from "@/components/admin/DashboardHome";
@@ -29,6 +30,7 @@ export default function AdminPage() {
   const [productTypes, setProductTypes] = useState<ProductType[]>([]);
   const [userDrafts, setUserDrafts] = useState<ProductDraft[]>([]);
   const [organizationProfile, setOrganizationProfile] = useState<OrganizationProfileData | null>(null);
+  const [storageUsage, setStorageUsage] = useState<StorageUsageData | null>(null);
   const [showProductFormDialog, setShowProductFormDialog] = useState(false);
   const [formInitialData, setFormInitialData] = useState<Partial<ProductFormData> | undefined>(undefined);
   const [activeDraftIdForForm, setActiveDraftIdForForm] = useState<string | undefined>(undefined);
@@ -50,10 +52,10 @@ export default function AdminPage() {
     if (!userId) return;
     setIsDataLoading(true); setNetworkError(null);
     try {
-      const [productsData, typesData, draftsData, profileData] = await Promise.all([
-        getProducts(force), getProductTypes(force), getUserDrafts(userId, force), getOrganizationProfile(force)
+      const [productsData, typesData, draftsData, profileData, storageData] = await Promise.all([
+        getProducts(force), getProductTypes(force), getUserDrafts(userId, force), getOrganizationProfile(force), getStorageUsage(force)
       ]);
-      setProducts(productsData); setProductTypes(typesData); setUserDrafts(draftsData); setOrganizationProfile(profileData);
+      setProducts(productsData); setProductTypes(typesData); setUserDrafts(draftsData); setOrganizationProfile(profileData); setStorageUsage(storageData);
     } catch (err: unknown) {
       setNetworkError(`Gagal memuat data: ${(err as Error).message}`);
     } finally { setIsDataLoading(false); }
@@ -107,7 +109,7 @@ export default function AdminPage() {
             {(isProcessing || isDataLoading || isProfileSaving) && (<div className="mb-6 p-6 bg-gradient-to-r from-red-900/40 to-red-800/40 backdrop-blur-xl border border-red-500/30 rounded-2xl shadow-lg"><div className="flex items-center justify-center gap-4"><LoadingSpinner /><span className="text-red-200 font-semibold text-lg">{isDataLoading ? 'Mengambil data...' : isProfileSaving ? 'Menyimpan profil...' : 'Memproses...'}</span></div></div>)}
             {networkError && (<div className="mb-6 p-6 bg-gradient-to-r from-red-900/40 to-red-800/40 backdrop-blur-xl border border-red-500/30 rounded-2xl shadow-lg"><div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></div><span className="text-red-200 font-medium">{networkError}</span></div><button onClick={() => loadAllAdminData(userProfile!.user.id, true).catch(console.error)} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition-all duration-200">Coba Lagi</button></div></div>)}
             <AdminTabs activeTab={activeTab} onTabChange={handleTabChange}>
-              <DashboardHome products={products} productTypes={productTypes} userDrafts={userDrafts} setShowDraftsDialog={setShowDraftsDialog} onCreateNewProduct={handleCreateNewProduct} onEditDraft={openFormToEditExistingDraft} onSetActiveTab={handleSetActiveTab} isProcessing={isProcessing}/>
+              <DashboardHome products={products} productTypes={productTypes} userDrafts={userDrafts} storageUsage={storageUsage} setShowDraftsDialog={setShowDraftsDialog} onCreateNewProduct={handleCreateNewProduct} onEditDraft={openFormToEditExistingDraft} onSetActiveTab={handleSetActiveTab} isProcessing={isProcessing}/>
               <ProductsTab products={filteredProducts} userDrafts={userDrafts} setShowDraftsDialog={setShowDraftsDialog} onCreateNewProduct={handleCreateNewProduct} onEditProduct={openFormToEditMasterProduct} onDeleteProduct={handleDeleteMasterProduct} onTogglePublish={handleTogglePublish} isProcessing={isProcessing} isDataLoading={isDataLoading} productTypes={productTypes} onAddType={handleAddProductType} onDeleteType={handleDeleteProductType} onUpdateType={handleUpdateProductType} searchTerm={searchTerm} onSearchChange={setSearchTerm}/>
               <ProfileTab organizationProfile={organizationProfile} onProfileSave={handleProfileSave} isProfileSaving={isProfileSaving} isDataLoading={isDataLoading}/>
             </AdminTabs>
