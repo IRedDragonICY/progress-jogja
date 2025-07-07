@@ -1,6 +1,14 @@
 import type { User } from "@supabase/supabase-js";
 
-// DEFINISI BARU UNTUK ALAMAT PENGGUNA
+export interface CartItem {
+  product_id: string;
+  quantity: number;
+}
+
+export interface WishlistItem {
+  product_id: string;
+}
+
 export interface Address {
   id: string;
   label: string;
@@ -14,12 +22,13 @@ export interface Address {
   courier_notes?: string;
 }
 
-// INTERFACE PROFILE YANG DIPERBARUI
 export interface Profile {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
-  addresses: Address[]; // <-- Penambahan properti ini
+  addresses: Address[];
+  cart: CartItem[];
+  wishlist: WishlistItem[];
   role: 'admin' | 'user';
   updated_at: string;
 }
@@ -29,7 +38,6 @@ export interface UserWithProfile {
   profile: Profile;
 }
 
-// SISA TIPE TETAP SAMA
 export interface ProductType {
   id: string;
   name: string;
@@ -47,6 +55,7 @@ export interface Product {
   name: string;
   product_type_id: string | null;
   description: string | null;
+  price: number;
   image_urls: string[];
   store_links: StoreLinkItem[];
   is_published: boolean;
@@ -62,6 +71,7 @@ export interface ProductDraft {
   name: string;
   product_type_id: string | null;
   description: string | null;
+  price: number; // <--- SUDAH DIPERBAIKI: Tambahkan ini
   image_urls: string[];
   store_links: StoreLinkItem[];
   created_at?: string;

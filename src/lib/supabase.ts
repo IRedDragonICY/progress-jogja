@@ -153,11 +153,11 @@ class CacheManager {
 }
 
 interface ProductDraftPayload extends Partial<ProductFormData> { user_id: string; product_id?: string | null; }
-interface ProductPayload { name: string | undefined; description: string | undefined; image_urls: string[]; store_links: StoreLinkItem[]; product_type_id: string | null | undefined; is_published: boolean; user_id: string; }
-interface ProductUpdatePayload { name?: string; description?: string; image_urls?: string[]; store_links?: StoreLinkItem[]; product_type_id?: string | null; is_published?: boolean; user_id?: string; }
+interface ProductPayload { name: string | undefined; description: string | undefined; price: number; image_urls: string[]; store_links: StoreLinkItem[]; product_type_id: string | null | undefined; is_published: boolean; user_id: string; }
+interface ProductUpdatePayload { name?: string; description?: string; price?: number; image_urls?: string[]; store_links?: StoreLinkItem[]; product_type_id?: string | null; is_published?: boolean; user_id?: string; }
 const fetchWithRetry = async <T>(fn: () => Promise<T>, retries = 1, delay = 700): Promise<T> => { try { return await fn(); } catch (error) { if (retries <= 0) throw error; await new Promise(resolve => setTimeout(resolve, delay)); return fetchWithRetry(fn, retries - 1, delay * 2);}};
 const cleanStoreLinksForDb = (links?: Partial<StoreLinkItem>[]): StoreLinkItem[] => links?.map(({ name = '', url = '' }) => ({ name, url })).filter(({ name, url }) => name && url) ?? [];
-const prepareDraftData = (data: Partial<ProductFormData>): Partial<ProductFormData> => ({ name: data.name || undefined, description: data.description || undefined, image_urls: Array.isArray(data.image_urls) ? data.image_urls : undefined, store_links: cleanStoreLinksForDb(data.store_links), product_type_id: data.product_type_id || null });
+const prepareDraftData = (data: Partial<ProductFormData>): Partial<ProductFormData> => ({ name: data.name || undefined, description: data.description || undefined, price: data.price, image_urls: Array.isArray(data.image_urls) ? data.image_urls : undefined, store_links: cleanStoreLinksForDb(data.store_links), product_type_id: data.product_type_id || null });
 export const getProductTypes = async (force = false): Promise<ProductType[]> => { if (!force) { const c = CacheManager.get<ProductType[]>(CACHE_KEYS.PRODUCT_TYPES); if (c) return c; } return fetchWithRetry(async () => { const { data, error } = await supabase.from('product_types').select('*').order('name'); if (error) throw error; const r = data || []; CacheManager.set(CACHE_KEYS.PRODUCT_TYPES, r); return r;});};
 export const createProductType = async (name: string): Promise<ProductType> => { const r = await fetchWithRetry(async () => { const { data, error } = await supabase.from('product_types').insert({ name }).select().single(); if (error) throw error; return data; }); CacheManager.invalidate(CACHE_KEYS.PRODUCT_TYPES); return r;};
 export const updateProductType = async (id: string, name: string): Promise<ProductType> => { const r = await fetchWithRetry(async () => { const { data, error } = await supabase.from('product_types').update({ name }).eq('id', id).select().single(); if (error) throw error; return data; }); CacheManager.invalidate(CACHE_KEYS.PRODUCT_TYPES, CACHE_KEYS.PRODUCTS, CACHE_KEYS.USER_DRAFTS); return r;};
@@ -172,7 +172,7 @@ const updateExistingDraft = async (draftId: string, payload: ProductDraftPayload
 const createNewDraft = async (payload: ProductDraftPayload): Promise<ProductDraft> => { debugLog('Creating new draft:', payload); const { data, error } = await supabase.from('product_drafts').insert(payload).select('*, product_types(id, name)').single(); if (error) throw error; return data;};
 export const deleteDraft = async (draftId: string): Promise<void> => { await fetchWithRetry(async () => { const { error } = await supabase.from('product_drafts').delete().eq('id', draftId); if (error) throw error; }); CacheManager.invalidate(CACHE_KEYS.USER_DRAFTS);};
 export const deleteAllUserDrafts = async (userId: string): Promise<void> => { await fetchWithRetry(async () => { const { error } = await supabase.from('product_drafts').delete().eq('user_id', userId); if (error) throw error; }); CacheManager.invalidate(CACHE_KEYS.USER_DRAFTS);};
-export const publishDraft = async (draftId: string, userId: string): Promise<Product> => { const d = await fetchWithRetry(async () => { const { data, error } = await supabase.from('product_drafts').select('*').eq('id', draftId).single(); if (error) throw error; return data; }); if (!d) throw new Error('Draft not found.'); if (d.user_id !== userId) throw new Error('Unauthorized.'); const p: ProductPayload = { name: d.name, description: d.description, image_urls: d.image_urls || [], store_links: d.store_links || [], product_type_id: d.product_type_id, is_published: true, user_id: userId }; const r = await (d.product_id ? updateExistingProduct(d.product_id, p) : createNewProduct(p)); await deleteDraft(d.id); CacheManager.invalidate(CACHE_KEYS.PRODUCTS); return r;};
+export const publishDraft = async (draftId: string, userId: string): Promise<Product> => { const d = await fetchWithRetry(async () => { const { data, error } = await supabase.from('product_drafts').select('*').eq('id', draftId).single(); if (error) throw error; return data; }); if (!d) throw new Error('Draft not found.'); if (d.user_id !== userId) throw new Error('Unauthorized.'); const p: ProductPayload = { name: d.name, description: d.description, price: d.price ?? 0, image_urls: d.image_urls || [], store_links: d.store_links || [], product_type_id: d.product_type_id, is_published: true, user_id: userId }; const r = await (d.product_id ? updateExistingProduct(d.product_id, p) : createNewProduct(p)); await deleteDraft(d.id); CacheManager.invalidate(CACHE_KEYS.PRODUCTS); return r;};
 const updateExistingProduct = async (productId: string, payload: ProductUpdatePayload): Promise<Product> => { const { data, error } = await supabase.from('products').update(payload).eq('id', productId).select('*, product_types(id, name)').single(); if (error) throw error; return data;};
 const createNewProduct = async (payload: ProductPayload): Promise<Product> => { const { data, error } = await supabase.from('products').insert(payload).select('*, product_types(id, name)').single(); if (error) throw error; return data;};
 const uploadFileToStorage = async (file: File, folder: string): Promise<string> => { const { data: { session }} = await supabase.auth.getSession(); if (!session) throw new Error('Not authenticated.'); const f = `${uuidv4()}.${file.name.split('.').pop()}`; const p = `${folder}/${f}`; const { error } = await supabase.storage.from('progress-jogja-bucket').upload(p, file, { cacheControl: '3600', upsert: false }); if (error) throw error; const { data: u } = supabase.storage.from('progress-jogja-bucket').getPublicUrl(p); if (!u?.publicUrl) throw new Error('Could not get public URL.'); return u.publicUrl;};
@@ -180,4 +180,25 @@ export const uploadProductImage = (file: File): Promise<string> => uploadFileToS
 export const uploadPartnerLogo = (file: File): Promise<string> => uploadFileToStorage(file, 'partner_logos');
 export const getOrganizationProfile = async (force = false): Promise<OrganizationProfileData | null> => { const k = CACHE_KEYS.ORGANIZATION_PROFILE; if (!force) { const c = CacheManager.get<OrganizationProfileData>(k); if (c) return c; } return fetchWithRetry(async () => { const { data, error } = await supabase.from('organization_profile').select('*').eq('id', ORG_PROFILE_ID_CONST).maybeSingle(); if (error) { console.error('Profile fetch error:', error); throw error; } const r = data ? data as OrganizationProfileData : null; if (r) { CacheManager.set(k, r); } return r;});};
 export const upsertOrganizationProfile = async (profileData: Partial<OrganizationProfileData>): Promise<OrganizationProfileData> => { const d = { ...profileData, id: ORG_PROFILE_ID_CONST, updated_at: new Date().toISOString(), addresses: profileData.addresses || [], phone_numbers: profileData.phone_numbers || [], social_media_links: profileData.social_media_links || [], organizational_structure: profileData.organizational_structure || [], partnerships: profileData.partnerships || []}; const r = await fetchWithRetry(async () => { const { data, error } = await supabase.from('organization_profile').upsert(d, { onConflict: 'id', ignoreDuplicates: false }).select().single(); if (error) { console.error('Profile upsert error:', error); throw error; } return data as OrganizationProfileData; }); CacheManager.invalidate(CACHE_KEYS.ORGANIZATION_PROFILE); return r;};
+
+// Helper function to convert product image filenames to proper Supabase storage URLs
+export const getProductImageUrl = (filename: string): string => {
+  // If it's already a full URL, return as-is
+  if (filename.startsWith('http://') || filename.startsWith('https://')) {
+    return filename;
+  }
+
+  // If it starts with a slash, it's a local path, return as-is
+  if (filename.startsWith('/')) {
+    return filename;
+  }
+
+  // Otherwise, it's a filename that needs to be converted to a Supabase storage URL
+  const { data } = supabase.storage
+    .from('progress-jogja-bucket')
+    .getPublicUrl(`produk/${filename}`);
+
+  return data.publicUrl;
+};
+
 export type { ProductFormData };

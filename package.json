@@ -57,6 +57,7 @@
     "node-mocks-http": "^1.17.1",
     "puppeteer": "^24.8.0",
     "react-leaflet": "^5.0.0",
+    "supabase": "^2.30.4",
     "tailwindcss": "^4",
     "ts-jest": "^29.1.2",
     "ts-node": "^10.9.2",

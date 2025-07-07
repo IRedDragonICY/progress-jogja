@@ -1,11 +1,11 @@
-import Navbar from "../components/tampilan/Navbar";
+import Topbar from "../components/tampilan/Topbar";
 import Footer from "../components/tampilan/Footer";
 import Link from "next/link";
 
 export default function HomePage() {
   return (
     <>
-      <Navbar />
+      <Topbar />
         <section className="bg-gray-50 bg-[url('/herobg.jpg')] bg-contain bg-center bg-no-repeat h-screen flex flex-col justify-end items-center text-black relative pb-20">
   <div className="text-center">
     <p className="text-lg">Inovasi Pangan Lokal untuk Pasar Global</p>
@@ -268,4 +268,4 @@ export default function HomePage() {
       <Footer />
     </>
   );
-} 
+}
