@@ -15,9 +15,11 @@ import {
   updateUserProfile,
   uploadAvatar,
   supabase,
+  getOrders,
+  createReview,
 } from '@/lib/supabase';
 import { fetchAddressFromCoords } from '@/lib/location';
-import type { UserWithProfile, Profile, Address } from '@/types/supabase';
+import type { UserWithProfile, Profile, Address, Order, OrderItem, Review } from '@/types/supabase';
 import {
   ArrowRightStartOnRectangleIcon,
   UserCircleIcon,
@@ -34,6 +36,8 @@ import {
   HomeIcon,
   BriefcaseIcon,
   TagIcon,
+  ArchiveBoxIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/solid';
 import { StarIcon as StarOutlineIcon } from '@heroicons/react/24/outline';
 
@@ -67,8 +71,8 @@ const FormDialog = ({ open, onOpenChange, title, children }: { open: boolean, on
   <Dialog.Root open={open} onOpenChange={onOpenChange}>
     <Dialog.Portal>
       <Dialog.Overlay className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-      <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl h-[90vh] max-h-[800px] bg-gray-900/95 backdrop-blur-xl border border-gray-700/50 rounded-3xl shadow-2xl z-50 flex flex-col data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95">
-        <Dialog.Title className="text-2xl font-bold text-white p-6 border-b border-gray-700/50 flex-shrink-0">{title}</Dialog.Title>
+      <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-[90vh] max-h-[800px] bg-gray-900/95 backdrop-blur-xl border border-gray-700/50 rounded-3xl shadow-2xl z-50 flex flex-col data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95">
+        <Dialog.Title className="text-2xl font-bold text-white p-6 border-b border-gray-700/50 flex-shrink-0 flex justify-between items-center">{title}<Dialog.Close asChild><button className="p-2 rounded-full hover:bg-gray-700"><XMarkIcon className="w-6 h-6 text-gray-400" /></button></Dialog.Close></Dialog.Title>
         <div className="flex-grow overflow-y-auto">{children}</div>
       </Dialog.Content>
     </Dialog.Portal>
@@ -264,7 +268,7 @@ const AddressSection = ({ profileData, onProfileUpdated }: { profileData: UserWi
             <PlusIcon className="w-5 h-5" /> Tambah Alamat
           </button>
         </div>
-        <div className="flex justify-end gap-3 p-6 mt-auto border-t border-gray-700/50">
+        <div className="flex justify-end gap-3 p-6 mt-auto border-t border-gray-700/50 sticky bottom-0 bg-gray-900/95 backdrop-blur-sm">
           <button type="button" onClick={() => setIsOpen(false)} className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-xl">Batal</button>
           <button onClick={saveAddresses} className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl">Simpan Alamat</button>
         </div>
@@ -364,6 +368,128 @@ const DeleteAccountSection = () => {
     )
 };
 
+const OrderHistorySection = ({ userId }: { userId: string }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [orders, setOrders] = useState<Order[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+    const [reviewingItem, setReviewingItem] = useState<OrderItem | null>(null);
+    const [rating, setRating] = useState(0);
+    const [comment, setComment] = useState("");
+
+    const fetchOrders = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const userOrders = await getOrders(userId);
+            setOrders(userOrders);
+        } catch (error) {
+            console.error("Error fetching orders:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [userId]);
+
+    useEffect(() => {
+        if (isOpen) {
+            fetchOrders();
+        }
+    }, [isOpen, fetchOrders]);
+
+    const handleReviewSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!reviewingItem || !selectedOrder || rating === 0) return;
+        try {
+            await createReview({
+                user_id: userId,
+                product_id: reviewingItem.product_id,
+                order_id: selectedOrder.id,
+                rating,
+                comment,
+            });
+            setReviewingItem(null);
+            setRating(0);
+            setComment("");
+        } catch (error) {
+            console.error("Error submitting review:", error);
+        }
+    };
+
+    const StatusBadge = ({ status }: { status: string }) => {
+        const statusStyles: { [key: string]: string } = {
+            pending: 'bg-yellow-800/50 border-yellow-700/50 text-yellow-300',
+            paid: 'bg-blue-800/50 border-blue-700/50 text-blue-300',
+            processing: 'bg-purple-800/50 border-purple-700/50 text-purple-300',
+            shipped: 'bg-cyan-800/50 border-cyan-700/50 text-cyan-300',
+            completed: 'bg-green-800/50 border-green-700/50 text-green-300',
+            cancelled: 'bg-red-800/50 border-red-700/50 text-red-300',
+            failed: 'bg-red-900/50 border-red-800/50 text-red-400',
+        };
+        return <span className={`px-2 py-1 text-xs font-medium rounded-full border ${statusStyles[status] || 'bg-gray-700'}`}>{status}</span>;
+    };
+
+    const renderReviewModal = () => (
+        <Dialog.Root open={!!reviewingItem} onOpenChange={() => setReviewingItem(null)}>
+            <Dialog.Portal>
+                <Dialog.Overlay className="fixed inset-0 bg-black/70 z-[60]" />
+                <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-gray-900 rounded-2xl p-6 z-[60]">
+                    <Dialog.Title className="text-xl font-bold text-white mb-4">Beri Ulasan untuk {reviewingItem?.name}</Dialog.Title>
+                    <form onSubmit={handleReviewSubmit} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-red-400 mb-2">Rating</label>
+                            <div className="flex items-center gap-1">
+                                {[1, 2, 3, 4, 5].map(star => (
+                                    <button type="button" key={star} onClick={() => setRating(star)}>
+                                        <StarSolidIcon className={`w-8 h-8 ${rating >= star ? 'text-yellow-400' : 'text-gray-600'}`} />
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div>
+                            <label htmlFor="comment" className="block text-sm font-medium text-red-400 mb-2">Komentar</label>
+                            <textarea id="comment" value={comment} onChange={e => setComment(e.target.value)} rows={4} className="input-field w-full" />
+                        </div>
+                        <div className="flex justify-end gap-3"><button type="button" onClick={() => setReviewingItem(null)} className="btn-secondary">Batal</button><button type="submit" className="btn-primary">Kirim Ulasan</button></div>
+                    </form>
+                </Dialog.Content>
+            </Dialog.Portal>
+        </Dialog.Root>
+    );
+
+    return (
+        <>
+            <SectionCard icon={ArchiveBoxIcon} title="Riwayat Pesanan" description="Lihat status dan detail pesanan Anda." onClick={() => setIsOpen(true)} />
+            <FormDialog open={isOpen} onOpenChange={setIsOpen} title="Riwayat Pesanan">
+                {isLoading ? <div className="p-6 text-center">Memuat...</div> :
+                    <div className="p-6 space-y-4">
+                        {orders.map(order => (
+                            <div key={order.id} className="p-4 bg-gray-800/60 rounded-2xl border border-gray-700/50">
+                                <div className="flex justify-between items-center mb-2">
+                                    <div>
+                                        <p className="font-semibold text-white">Order #{order.id.slice(0, 8)}</p>
+                                        <p className="text-sm text-gray-400">{new Date(order.created_at).toLocaleDateString()}</p>
+                                    </div>
+                                    <StatusBadge status={order.status} />
+                                </div>
+                                <div className="space-y-2">
+                                    {order.order_items.map(item => (
+                                        <div key={item.product_id} className="flex items-center justify-between text-sm">
+                                            <p>{item.name} (x{item.quantity})</p>
+                                            {order.status === 'completed' && <button onClick={() => { setSelectedOrder(order); setReviewingItem(item);}} className="text-xs text-red-400 hover:underline">Beri Ulasan</button>}
+                                        </div>
+                                    ))}
+                                </div>
+                                <p className="text-right font-bold mt-2">Total: Rp {order.total_amount.toLocaleString()}</p>
+                            </div>
+                        ))}
+                    </div>
+                }
+            </FormDialog>
+            {renderReviewModal()}
+        </>
+    );
+};
+
+
 export default function ProfilePage() {
   const router = useRouter();
   const [profileData, setProfileData] = useState<UserWithProfile | null>(null);
@@ -378,7 +504,6 @@ export default function ProfilePage() {
           router.replace('/login');
           return;
         }
-        // Type assertion to handle the null profile case
         setProfileData(data as UserWithProfile);
       } catch (error) {
         console.error('Error fetching profile:', error);
@@ -407,28 +532,18 @@ export default function ProfilePage() {
     );
   }
 
-  if (!profileData?.user) {
-    return null;
-  }
-
-  const { user, profile } = profileData;
-
-  // Handle case where profile might be null
-  if (!profile) {
+  if (!profileData?.user || !profileData?.profile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-950">
         <div className="text-center">
-          <p className="text-white mb-4">Profile not found</p>
-          <button 
-            onClick={() => router.replace('/login')} 
-            className="px-4 py-2 bg-red-600 text-white rounded-lg"
-          >
-            Return to Login
-          </button>
+          <p className="text-white mb-4">Gagal memuat profil. Silakan login kembali.</p>
+          <button onClick={() => router.replace('/login')} className="px-4 py-2 bg-red-600 text-white rounded-lg">Kembali ke Login</button>
         </div>
       </div>
     );
   }
+
+  const { user, profile } = profileData;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800 text-gray-100">
@@ -464,6 +579,7 @@ export default function ProfilePage() {
             <h2 className="text-lg font-semibold text-gray-400 px-4">Pengaturan Akun</h2>
             <EditProfileSection profileData={profileData} onProfileUpdated={handleProfileUpdated} />
             <AddressSection profileData={profileData} onProfileUpdated={handleProfileUpdated} />
+            <OrderHistorySection userId={user.id} />
 
             <h2 className="text-lg font-semibold text-gray-400 px-4 pt-4">Keamanan</h2>
             <ChangePasswordSection />

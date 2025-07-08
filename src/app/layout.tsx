@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
-import 'leaflet/dist/leaflet.css'; // Leaflet CSS for MapPicker
+import 'leaflet/dist/leaflet.css';
 import { Analytics } from "@vercel/analytics/react";
 
 const geistSans = Geist({
@@ -24,8 +25,20 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const midtransSnapUrl = process.env.NODE_ENV === 'production'
+    ? 'https://app.midtrans.com/snap/snap.js'
+    : 'https://app.sandbox.midtrans.com/snap/snap.js';
+
   return (
     <html lang="id">
+      <head>
+        <Script
+          type="text/javascript"
+          src={midtransSnapUrl}
+          data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY}
+          strategy="beforeInteractive"
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

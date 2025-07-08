@@ -145,3 +145,47 @@ export interface StorageUsageData {
   available_size_bytes: number;
   used_percentage: number;
 }
+
+export interface OrderItem {
+  product_id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image_url: string | null;
+}
+
+export interface ShippingAddress {
+  recipient_name: string;
+  recipient_phone: string;
+  full_address: string;
+}
+
+export type OrderStatus = 'pending' | 'paid' | 'processing' | 'shipped' | 'completed' | 'cancelled' | 'failed';
+
+export interface Order {
+  id: string;
+  display_id: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+  order_items: OrderItem[];
+  total_amount: number;
+  status: OrderStatus;
+  shipping_address: ShippingAddress;
+  shipping_provider: string | null;
+  shipping_tracking_number: string | null;
+  payment_method: string;
+  midtrans_transaction_id: string | null;
+  midtrans_snap_token: string | null;
+  midtrans_snap_redirect_url: string | null;
+}
+
+export interface Review {
+  id: string;
+  user_id: string;
+  product_id: string;
+  order_id: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+}

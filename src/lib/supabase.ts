@@ -1,5 +1,5 @@
 import { createBrowserClient } from '@supabase/ssr';
-import { Product, ProductType, ProductDraft, ProductFormData, StoreLinkItem, OrganizationProfileData, Profile, StorageUsageData } from '@/types/supabase';
+import { Product, ProductType, ProductDraft, ProductFormData, StoreLinkItem, OrganizationProfileData, Profile, StorageUsageData, Order, OrderStatus, Review } from '@/types/supabase';
 import { v4 as uuidv4 } from 'uuid';
 
 export const supabase = createBrowserClient(
@@ -187,4 +187,35 @@ export const getOrganizationProfile = async (force = false): Promise<Organizatio
 export const upsertOrganizationProfile = async (profileData: Partial<OrganizationProfileData>): Promise<OrganizationProfileData> => { const d = { ...profileData, id: ORG_PROFILE_ID_CONST, updated_at: new Date().toISOString(), addresses: profileData.addresses || [], phone_numbers: profileData.phone_numbers || [], social_media_links: profileData.social_media_links || [], organizational_structure: profileData.organizational_structure || [], partnerships: profileData.partnerships || []}; const r = await fetchWithRetry(async () => { const { data, error } = await supabase.from('organization_profile').upsert(d, { onConflict: 'id', ignoreDuplicates: false }).select().single(); if (error) { console.error('Profile upsert error:', error); throw error; } return data as OrganizationProfileData; }); CacheManager.invalidate(CACHE_KEYS.ORGANIZATION_PROFILE); return r;};
 export const getStorageUsage = async (force = false): Promise<StorageUsageData | null> => { if (!force) { const c = CacheManager.get<StorageUsageData>(CACHE_KEYS.STORAGE_USAGE); if (c) return c; } try { const { data: rawData, error } = await supabase.rpc('get_project_usage'); if (error) throw error; const total_project_limit_bytes = 5 * 1024 * 1024 * 1024; const total_used_bytes = rawData.total_used_bytes || 0; const result: StorageUsageData = { database_size_bytes: rawData.database_size_bytes || 0, storage_size_bytes: rawData.storage_size_bytes || 0, total_used_bytes: total_used_bytes, total_project_limit_bytes: total_project_limit_bytes, available_size_bytes: total_project_limit_bytes - total_used_bytes, used_percentage: total_project_limit_bytes > 0 ? (total_used_bytes / total_project_limit_bytes) * 100 : 0, }; CacheManager.set(CACHE_KEYS.STORAGE_USAGE, result); return result; } catch (err) { console.error("Error fetching storage usage via RPC:", err); return null; } };
 export const getProductImageUrl = (filename: string): string => { if (filename.startsWith('http://') || filename.startsWith('https://')) { return filename; } if (filename.startsWith('/')) { return filename; } const { data } = supabase.storage.from('progress-jogja-bucket').getPublicUrl(`produk/${filename}`); return data.publicUrl; };
+
+export const getOrders = async (userId?: string): Promise<Order[]> => {
+    let query = supabase.from('orders').select('*').order('created_at', { ascending: false });
+    if (userId) {
+        query = query.eq('user_id', userId);
+    }
+    const { data, error } = await query;
+    if (error) {
+        console.error("Error fetching orders:", error);
+        throw error;
+    }
+    return data || [];
+};
+
+export const updateOrderStatus = async (orderId: string, status: OrderStatus, provider?: string, trackingNumber?: string): Promise<Order> => {
+    const { data, error } = await supabase
+        .from('orders')
+        .update({ status, shipping_provider: provider, shipping_tracking_number: trackingNumber, updated_at: new Date().toISOString() })
+        .eq('id', orderId)
+        .select()
+        .single();
+    if (error) throw error;
+    return data;
+};
+
+export const createReview = async (reviewData: Omit<Review, 'id' | 'created_at'>): Promise<Review> => {
+    const { data, error } = await supabase.from('reviews').insert(reviewData).select().single();
+    if (error) throw error;
+    return data;
+};
+
 export type { ProductFormData };
