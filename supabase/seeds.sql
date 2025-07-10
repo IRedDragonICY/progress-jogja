@@ -464,7 +464,7 @@ SET
             "id": "event-002",
             "country": "Saudi Arabia",
             "country_code": "🇸🇦",
-            "image_url": "https://snpygntfpumljzhikwym.supabase.co/storage/v1/object/public/progress-jogja-bucket/event/event-saudi.jpg"
+            "image_url": "https://snpygntfpumljzhikwym.supabase.co/storage/v1/object/public/progress-jogja-bucket/event/event-saudiarabia.jpg"
         },
         {
             "id": "event-003",
