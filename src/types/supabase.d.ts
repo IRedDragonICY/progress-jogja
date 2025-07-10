@@ -107,6 +107,21 @@ export interface PartnershipItem {
   logo_url: string | null;
 }
 
+export interface Achievement {
+  id: string;
+  title: string;
+  issuer: string;
+  year: number;
+  image_url: string | null;
+}
+
+export interface InternationalEvent {
+  id: string;
+  country: string;
+  country_code: string;
+  image_url: string | null;
+}
+
 export interface OrganizationProfileData {
   id?: string;
   slogan: string | null;
@@ -118,6 +133,8 @@ export interface OrganizationProfileData {
   mission: string | null;
   organizational_structure: OrganizationMember[];
   partnerships: PartnershipItem[];
+  achievements: Achievement[];
+  international_events: InternationalEvent[];
   created_at?: string;
   updated_at?: string;
 }

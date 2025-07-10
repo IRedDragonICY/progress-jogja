@@ -207,6 +207,306 @@ COMMENT ON TABLE public.product_types IS 'Kategori produk seperti Minuman Herbal
 COMMENT ON TABLE public.organization_profile IS 'Profil organisasi Progress Jogja';
 COMMENT ON TABLE public.profiles IS 'Profil pengguna termasuk admin dan member';
 
+
+-- Inser organization profile
+UPDATE public.organization_profile
+SET
+    slogan = 'Innovative local food and beverage',
+    email = 'ProgressJogjaOfficial@gmail.com',
+    vision = 'Menjadikan produk lokal sebagai komoditas unggulan yang berkualitas di pasar global.',
+    mission = 'Sebuah kelompok wirausaha muda yang mengembangkan produk lokal melalui sentuhan teknologi tepat guna.\nMeningkatkan kapasitas produksi dari waktu ke waktu secara bertahap dengan tetap menjaga kualitas produk yang terbaik.\nMeningkatkan jaringan pemasaran.\nMembuat diversifikasi produk\nBersama pihak lain mempromosikan produk Go International',
+    addresses = '[
+        {
+            "id": "e7a9f2d8-0001-4f1e-8d0f-6c7a3b9e1d2f",
+            "text": "Jalan Mawar I/207 Perumnas Condongcatur, Depok, Sleman, Yogyakarta 55283",
+            "latitude": -7.7559,
+            "longitude": 110.407,
+            "notes": "Kantor & Produksi Utama"
+        },
+        {
+            "id": "e7a9f2d8-0002-4f1e-8d0f-6c7a3b9e1d2f",
+            "text": "Dusun Petir RT 01, Srimartani, Piyungan, Bantul, Yogyakarta",
+            "latitude": -7.848,
+            "longitude": 110.457,
+            "notes": "Tempat Produksi Tambahan"
+        }
+    ]'::jsonb,
+    phone_numbers = '[
+        {
+            "id": "e7a9f2d8-0003-4f1e-8d0f-6c7a3b9e1d2f",
+            "number": "+6281215737328",
+            "label": "HP/WA 1"
+        },
+        {
+            "id": "e7a9f2d8-0004-4f1e-8d0f-6c7a3b9e1d2f",
+            "number": "+6281578881432",
+            "label": "HP/WA 2"
+        }
+    ]'::jsonb,
+    social_media_links = '[
+        {
+            "id": "e7a9f2d8-0005-4f1e-8d0f-6c7a3b9e1d2f",
+            "platform": "Instagram",
+            "url": "https://instagram.com/progress.jogja"
+        }
+    ]'::jsonb,
+    organizational_structure = '[
+        {
+            "id": "e7a9f2d8-0006-4f1e-8d0f-6c7a3b9e1d2f",
+            "position": "Direktur",
+            "name": "Retnosyari Septiyani, S.T.P, M.Sc"
+        },
+        {
+            "id": "e7a9f2d8-0007-4f1e-8d0f-6c7a3b9e1d2f",
+            "position": "Manajer Operasional dan Produksi",
+            "name": "Mursyanif, S.Sos"
+        },
+        {
+            "id": "e7a9f2d8-0008-4f1e-8d0f-6c7a3b9e1d2f",
+            "position": "Manajer Research and Development (RnD)",
+            "name": "Diyah Ari Isnaini, S.T,P"
+        },
+        {
+            "id": "e7a9f2d8-0009-4f1e-8d0f-6c7a3b9e1d2f",
+            "position": "Manajer Keuangan",
+            "name": "Ridwan Budi Prasetyo, S.T, M.Eng"
+        },
+        {
+            "id": "e7a9f2d8-0010-4f1e-8d0f-6c7a3b9e1d2f",
+            "position": "Manajer Pemasaran",
+            "name": "Noor Rahmat Erwiyanto, SE"
+        }
+    ]'::jsonb,
+    partnerships = '[
+        {
+            "id": "e7a9f2d8-p001-4f1e-8d0f-6c7a3b9e1d2f",
+            "category": "education_government",
+            "name": "Universitas Gadjah Mada",
+            "logo_url": null
+        },
+        {
+            "id": "e7a9f2d8-p002-4f1e-8d0f-6c7a3b9e1d2f",
+            "category": "education_government",
+            "name": "Universitas Ahmad Dahlan",
+            "logo_url": null
+        },
+        {
+            "id": "e7a9f2d8-p003-4f1e-8d0f-6c7a3b9e1d2f",
+            "category": "education_government",
+            "name": "Universitas Jenderal Ahmad Yani",
+            "logo_url": null
+        },
+        {
+            "id": "e7a9f2d8-p004-4f1e-8d0f-6c7a3b9e1d2f",
+            "category": "education_government",
+            "name": "Universitas Pembangunan Nasional Veteran Yogyakarta",
+            "logo_url": null
+        },
+        {
+            "id": "e7a9f2d8-p005-4f1e-8d0f-6c7a3b9e1d2f",
+            "category": "education_government",
+            "name": "Universitas Amikom Yogyakarta",
+            "logo_url": null
+        },
+        {
+            "id": "e7a9f2d8-p006-4f1e-8d0f-6c7a3b9e1d2f",
+            "category": "education_government",
+            "name": "Dinas Koperasi, UKM, Perindustrian dan Perdagangan Kab Bantul",
+            "logo_url": null
+        },
+        {
+            "id": "e7a9f2d8-p007-4f1e-8d0f-6c7a3b9e1d2f",
+            "category": "education_government",
+            "name": "Dinas Pertanian DI Yogyakarta",
+            "logo_url": null
+        },
+        {
+            "id": "e7a9f2d8-p008-4f1e-8d0f-6c7a3b9e1d2f",
+            "category": "education_government",
+            "name": "Dinas Koperasi dan UMKM DI Yogyakarta",
+            "logo_url": null
+        },
+        {
+            "id": "e7a9f2d8-p009-4f1e-8d0f-6c7a3b9e1d2f",
+            "category": "education_government",
+            "name": "PLUT Yogyakarta",
+            "logo_url": null
+        },
+        {
+            "id": "e7a9f2d8-p010-4f1e-8d0f-6c7a3b9e1d2f",
+            "category": "education_government",
+            "name": "ABDSI",
+            "logo_url": null
+        },
+        {
+            "id": "e7a9f2d8-p011-4f1e-8d0f-6c7a3b9e1d2f",
+            "category": "education_government",
+            "name": "Koperasi Wahana Mandiri Indonesia",
+            "logo_url": null
+        },
+        {
+            "id": "e7a9f2d8-p012-4f1e-8d0f-6c7a3b9e1d2f",
+            "category": "education_government",
+            "name": "SMK N 1 Cangkringan Sleman",
+            "logo_url": null
+        },
+        {
+            "id": "e7a9f2d8-p013-4f1e-8d0f-6c7a3b9e1d2f",
+            "category": "education_government",
+            "name": "SMKN 1 Nanggulan Kulon Progo",
+            "logo_url": null
+        },
+        {
+            "id": "e7a9f2d8-p014-4f1e-8d0f-6c7a3b9e1d2f",
+            "category": "education_government",
+            "name": "SMKN 1 Pacitan Jawa Timur",
+            "logo_url": null
+        },
+        {
+            "id": "e7a9f2d8-p015-4f1e-8d0f-6c7a3b9e1d2f",
+            "category": "education_government",
+            "name": "SMK Muhammadiyah Salaman Magelang Jateng",
+            "logo_url": null
+        },
+        {
+            "id": "e7a9f2d8-p016-4f1e-8d0f-6c7a3b9e1d2f",
+            "category": "education_government",
+            "name": "SMK N 1 Kalasan",
+            "logo_url": null
+        },
+        {
+            "id": "e7a9f2d8-p017-4f1e-8d0f-6c7a3b9e1d2f",
+            "category": "education_government",
+            "name": "LSM PUPUK",
+            "logo_url": null
+        },
+        {
+            "id": "e7a9f2d8-p018-4f1e-8d0f-6c7a3b9e1d2f",
+            "category": "industry",
+            "name": "PT Gawe Becik Nadhah Anugrah",
+            "logo_url": null
+        },
+        {
+            "id": "e7a9f2d8-p019-4f1e-8d0f-6c7a3b9e1d2f",
+            "category": "industry",
+            "name": "PT Yukayoga Karya Persada",
+            "logo_url": null
+        },
+        {
+            "id": "e7a9f2d8-p020-4f1e-8d0f-6c7a3b9e1d2f",
+            "category": "industry",
+            "name": "PT Citarasa Food Nusantara",
+            "logo_url": null
+        },
+        {
+            "id": "e7a9f2d8-p021-4f1e-8d0f-6c7a3b9e1d2f",
+            "category": "industry",
+            "name": "PT Rahasia Wasiat Alam",
+            "logo_url": null
+        },
+        {
+            "id": "e7a9f2d8-p022-4f1e-8d0f-6c7a3b9e1d2f",
+            "category": "industry",
+            "name": "PT Ebliethos",
+            "logo_url": null
+        },
+        {
+            "id": "e7a9f2d8-p023-4f1e-8d0f-6c7a3b9e1d2f",
+            "category": "industry",
+            "name": "PT Bagaskara Semesraya Internasional",
+            "logo_url": null
+        },
+        {
+            "id": "e7a9f2d8-p024-4f1e-8d0f-6c7a3b9e1d2f",
+            "category": "industry",
+            "name": "PT Sundhul Langit Jalan Kami",
+            "logo_url": null
+        }
+    ]'::jsonb,
+    "achievements" = '[
+        {
+            "id": "achieve-001",
+            "title": "Juara 1 Wirausaha Usaha Pangan",
+            "issuer": "Kementerian Pemuda dan Olahraga RI",
+            "year": 2006,
+            "image_url": "https://snpygntfpumljzhikwym.supabase.co/storage/v1/object/public/progress-jogja-bucket/achiavement/achiavement-piagam.jpg"
+        },
+        {
+            "id": "achieve-002",
+            "title": "Juara 1 Industri Ketahanan Pangan",
+            "issuer": "Kabupaten Bantul",
+            "year": 2016,
+            "image_url": null
+        },
+        {
+            "id": "achieve-003",
+            "title": "Juara 1 Industri Ketahanan Pangan",
+            "issuer": "D.I. Yogyakarta",
+            "year": 2016,
+            "image_url": null
+        },
+        {
+            "id": "achieve-004",
+            "title": "Penghargaan Adikarya Pangan Nusantara",
+            "issuer": "Presiden RI",
+            "year": 2016,
+            "image_url": "https://snpygntfpumljzhikwym.supabase.co/storage/v1/object/public/progress-jogja-bucket/achiavement/achiavement-jokowi.jpg"
+        }
+    ]'::jsonb,
+    "international_events" = '[
+        {
+            "id": "event-001",
+            "country": "Singapura",
+            "country_code": "🇸🇬",
+            "image_url": "https://snpygntfpumljzhikwym.supabase.co/storage/v1/object/public/progress-jogja-bucket/event/event-singapore.jpg"
+        },
+        {
+            "id": "event-002",
+            "country": "Saudi Arabia",
+            "country_code": "🇸🇦",
+            "image_url": "https://snpygntfpumljzhikwym.supabase.co/storage/v1/object/public/progress-jogja-bucket/event/event-saudi.jpg"
+        },
+        {
+            "id": "event-003",
+            "country": "Azerbaijan",
+            "country_code": "🇦🇿",
+            "image_url": "https://snpygntfpumljzhikwym.supabase.co/storage/v1/object/public/progress-jogja-bucket/event/event-Azerbaijan.jpg"
+        },
+        {
+            "id": "event-004",
+            "country": "Jepang",
+            "country_code": "🇯🇵",
+            "image_url": "https://snpygntfpumljzhikwym.supabase.co/storage/v1/object/public/progress-jogja-bucket/event/event-jepang.jpg"
+        },
+        {
+            "id": "event-005",
+            "country": "China",
+            "country_code": "🇨🇳",
+            "image_url": "https://snpygntfpumljzhikwym.supabase.co/storage/v1/object/public/progress-jogja-bucket/event/event-china.jpg"
+        },
+        {
+            "id": "event-006",
+            "country": "Malaysia",
+            "country_code": "🇲🇾",
+            "image_url": "https://snpygntfpumljzhikwym.supabase.co/storage/v1/object/public/progress-jogja-bucket/event/event-malaysia.jpg"
+        },
+        {
+            "id": "event-007",
+            "country": "Australia",
+            "country_code": "🇦🇺",
+            "image_url": "https://snpygntfpumljzhikwym.supabase.co/storage/v1/object/public/progress-jogja-bucket/event/event-australia.jpg"
+        },
+        {
+            "id": "event-008",
+            "country": "Jerman",
+            "country_code": "🇩🇪",
+            "image_url": "https://snpygntfpumljzhikwym.supabase.co/storage/v1/object/public/progress-jogja-bucket/event/event-jerman.jpg"
+        }
+    ]'::jsonb,
+    updated_at = NOW()
+WHERE id = 'e7a9f2d8-5b8c-4f1e-8d0f-6c7a3b9e1d2f';
+
+
 -- Success message
 DO $$
 BEGIN

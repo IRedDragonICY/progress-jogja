@@ -1,4 +1,3 @@
--- 1. Reset and Setup Schema
 DROP SCHEMA IF EXISTS public CASCADE;
 CREATE SCHEMA IF NOT EXISTS public;
 
@@ -8,7 +7,6 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO public, anon, a
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO public, anon, authenticated;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO public, anon, authenticated;
 
--- 2. Extensions and Helper Functions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE OR REPLACE FUNCTION public.handle_updated_at()
@@ -19,7 +17,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 3. Enum Types for Controlled Vocabularies
 CREATE TYPE public.order_status AS ENUM (
     'pending',
     'paid',
@@ -30,7 +27,6 @@ CREATE TYPE public.order_status AS ENUM (
     'failed'
 );
 
--- 4. Core Application Tables
 CREATE TABLE public.product_types (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     name text NOT NULL UNIQUE,
@@ -76,6 +72,8 @@ CREATE TABLE public.organization_profile (
     social_media_links jsonb DEFAULT '[]'::jsonb NOT NULL,
     organizational_structure jsonb DEFAULT '[]'::jsonb NOT NULL,
     partnerships jsonb DEFAULT '[]'::jsonb NOT NULL,
+    achievements jsonb DEFAULT '[]'::jsonb NOT NULL,
+    international_events jsonb DEFAULT '[]'::jsonb NOT NULL,
     created_at timestamptz DEFAULT now() NOT NULL,
     updated_at timestamptz DEFAULT now() NOT NULL
 );
@@ -89,7 +87,6 @@ CREATE TABLE public.profiles (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 5. User Interaction Tables
 CREATE TABLE public.cart_items (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -107,10 +104,9 @@ CREATE TABLE public.wishlists (
     CONSTRAINT wishlists_user_product_key UNIQUE (user_id, product_id)
 );
 
--- 6. NEW TABLES: Orders and Reviews
 CREATE TABLE public.orders (
     id uuid PRIMARY KEY,
-    display_id text UNIQUE NOT NULL, -- NEW: User-facing order ID
+    display_id text UNIQUE NOT NULL,
     user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
     order_items jsonb NOT NULL,
     total_amount decimal(10,2) NOT NULL,
@@ -137,14 +133,12 @@ CREATE TABLE public.reviews (
     CONSTRAINT reviews_order_product_key UNIQUE (order_id, product_id, user_id)
 );
 
--- 7. Triggers for `updated_at`
 CREATE TRIGGER on_products_update BEFORE UPDATE ON public.products FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER on_product_drafts_update BEFORE UPDATE ON public.product_drafts FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER on_organization_profile_update BEFORE UPDATE ON public.organization_profile FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER on_profiles_update BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER on_orders_update BEFORE UPDATE ON public.orders FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
--- 8. Auth Triggers and Functions
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -180,7 +174,6 @@ CREATE OR REPLACE TRIGGER on_profile_change_update_user_role
   AFTER INSERT OR UPDATE OF role ON public.profiles
   FOR EACH ROW EXECUTE PROCEDURE public.update_user_role_from_profile();
 
--- 9. Row Level Security (RLS) Setup
 ALTER TABLE public.product_types ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.product_drafts ENABLE ROW LEVEL SECURITY;
@@ -196,7 +189,6 @@ RETURNS BOOLEAN AS $$
   SELECT auth.jwt() ->> 'role' = 'admin';
 $$ LANGUAGE sql STABLE;
 
--- 10. RLS Policies
 CREATE POLICY "Users can view all profiles" ON public.profiles FOR SELECT USING (true);
 CREATE POLICY "Users can insert their own profile" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
 CREATE POLICY "Users can update their own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
@@ -229,7 +221,6 @@ CREATE POLICY "Users can insert reviews for their own completed orders" ON publi
 CREATE POLICY "Users can update their own reviews" ON public.reviews FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Admins have full access to reviews" ON public.reviews FOR ALL USING (is_admin());
 
--- 11. RPC for project usage
 DROP FUNCTION IF EXISTS public.get_project_usage();
 CREATE OR REPLACE FUNCTION public.get_project_usage()
 RETURNS jsonb
@@ -253,7 +244,6 @@ AS $$
 $$;
 GRANT EXECUTE ON FUNCTION public.get_project_usage() TO authenticated;
 
--- 12. Storage Bucket Setup
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES ('progress-jogja-bucket', 'progress-jogja-bucket', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
 ON CONFLICT (id) DO UPDATE SET
@@ -270,6 +260,5 @@ CREATE POLICY "Allow authenticated users to update storage" ON storage.objects F
 DROP POLICY IF EXISTS "Allow authenticated users to delete from storage" ON storage.objects;
 CREATE POLICY "Allow authenticated users to delete from storage" ON storage.objects FOR DELETE USING (auth.role() = 'authenticated');
 
--- 13. Initial Data
 INSERT INTO public.organization_profile (id) VALUES ('e7a9f2d8-5b8c-4f1e-8d0f-6c7a3b9e1d2f') ON CONFLICT (id) DO NOTHING;
 INSERT INTO "public"."profiles" ("id", "full_name", "avatar_url", "addresses", "role", "updated_at") VALUES ('315c3c4e-3c9d-44de-8dbb-a37bded946ac', 'Mohammad Farid Hendianto', null, '[]', 'admin', '2025-07-07 08:20:32.337484+00');
