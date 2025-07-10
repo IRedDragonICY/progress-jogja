@@ -172,108 +172,10 @@ const EditProfileSection = ({ profileData, onProfileUpdated }: { profileData: Us
 };
 
 const AddressSection = ({ profileData, onProfileUpdated }: { profileData: UserWithProfile, onProfileUpdated: (newProfile: Profile) => void }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [addresses, setAddresses] = useState<Address[]>([]);
-
-  useEffect(() => {
-    if(isOpen) setAddresses(JSON.parse(JSON.stringify(profileData.profile?.addresses || [])));
-  }, [isOpen, profileData.profile?.addresses]);
-
-  const updateAddress = useCallback(<K extends keyof Address>(id: string, field: K, value: Address[K]) => {
-    setAddresses(prev => prev.map(addr => addr.id === id ? { ...addr, [field]: value } : addr));
-  }, []);
-
-  const debouncedFetchAddress = useMemo(
-    () => debounce(async (id: string, lat: number, lng: number) => {
-      const { full_address, postal_code } = await fetchAddressFromCoords(lat, lng);
-      updateAddress(id, 'full_address', full_address);
-      if (postal_code) updateAddress(id, 'postal_code', postal_code);
-    }, 800),
-    [updateAddress]
-  );
-
-  const handlePositionChange = useCallback((id: string, lat: number, lng: number) => {
-    updateAddress(id, 'latitude', lat);
-    updateAddress(id, 'longitude', lng);
-    debouncedFetchAddress(id, lat, lng);
-  }, [updateAddress, debouncedFetchAddress]);
-
-  const addAddress = () => setAddresses(prev => [...prev, {
-      id: uuidv4(),
-      label: 'Alamat Baru',
-      recipient_name: profileData.profile?.full_name || '',
-      recipient_phone: '',
-      full_address: '',
-      postal_code: '',
-      latitude: null,
-      longitude: null,
-      is_primary: prev.length === 0,
-      courier_notes: '',
-  }]);
-
-  const removeAddress = (id: string) => setAddresses(prev => {
-      const remaining = prev.filter(addr => addr.id !== id);
-      if (remaining.length > 0 && !remaining.some(a => a.is_primary)) remaining[0].is_primary = true;
-      return remaining;
-  });
-
-  const setPrimaryAddress = (id: string) => setAddresses(prev => prev.map(addr => ({ ...addr, is_primary: addr.id === id })));
-
-  const saveAddresses = async () => {
-    try {
-      const updatedProfile = await updateUserProfile(profileData.user.id, { addresses });
-      onProfileUpdated(updatedProfile);
-      setIsOpen(false);
-    } catch(err) { console.error(err); }
-  };
-
-  const getAddressIcon = (label: string) => {
-    const l = label.toLowerCase();
-    if (l.includes('rumah')) return HomeIcon;
-    if (l.includes('kantor') || l.includes('kerja')) return BriefcaseIcon;
-    return TagIcon;
-  }
-
-  const inputBaseStyle = "w-full bg-gray-700/50 border border-gray-600 rounded-xl px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-red-500/80 focus:ring-1 focus:ring-red-500/50";
-
-
   return (
-    <>
-      <SectionCard icon={MapPinIcon} title="Daftar Alamat" description="Kelola alamat pengiriman Anda." onClick={() => setIsOpen(true)} />
-      <FormDialog open={isOpen} onOpenChange={setIsOpen} title="Daftar Alamat">
-        <div className="p-6 space-y-4">
-          {addresses.map(addr => (
-            <div key={addr.id} className="p-4 bg-gray-800/60 rounded-2xl border border-gray-700/50 space-y-4">
-              <div className="flex justify-between items-start">
-                  <div className="flex items-center gap-3">
-                     {React.createElement(getAddressIcon(addr.label), {className: "w-5 h-5 text-gray-400"})}
-                    <input type="text" value={addr.label} onChange={(e) => updateAddress(addr.id, 'label', e.target.value)} className="bg-transparent text-lg font-semibold text-white focus:outline-none w-full" />
-                  </div>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => setPrimaryAddress(addr.id)} className={`flex items-center gap-1 px-2 py-1 text-xs rounded-full ${addr.is_primary ? 'bg-amber-500/80 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}>
-                    {addr.is_primary ? <StarSolidIcon className="w-3 h-3"/> : <StarOutlineIcon className="w-3 h-3"/>} Utama
-                  </button>
-                  <button onClick={() => removeAddress(addr.id)} className="p-1 text-red-400 hover:bg-red-500/20 rounded-full"><TrashIcon className="w-4 h-4"/></button>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                 <input type="text" value={addr.recipient_name} onChange={e => updateAddress(addr.id, 'recipient_name', e.target.value)} placeholder="Nama Penerima" className={inputBaseStyle} />
-                 <input type="tel" value={addr.recipient_phone} onChange={e => updateAddress(addr.id, 'recipient_phone', e.target.value)} placeholder="Telepon Penerima" className={inputBaseStyle} />
-              </div>
-              <textarea value={addr.full_address} onChange={e => updateAddress(addr.id, 'full_address', e.target.value)} placeholder="Alamat Lengkap" rows={2} className={`${inputBaseStyle} resize-none`} />
-              <MapPicker initialPosition={addr.latitude && addr.longitude ? [addr.latitude, addr.longitude] : null} onPositionChange={(lat, lng) => handlePositionChange(addr.id, lat, lng)} height="200px" />
-            </div>
-          ))}
-          <button onClick={addAddress} className="w-full flex items-center justify-center gap-2 py-3 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-xl transition-all">
-            <PlusIcon className="w-5 h-5" /> Tambah Alamat
-          </button>
-        </div>
-        <div className="flex justify-end gap-3 p-6 mt-auto border-t border-gray-700/50 sticky bottom-0 bg-gray-900/95 backdrop-blur-sm">
-          <button type="button" onClick={() => setIsOpen(false)} className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-xl">Batal</button>
-          <button onClick={saveAddresses} className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl">Simpan Alamat</button>
-        </div>
-      </FormDialog>
-    </>
+    <Link href="/profile/address">
+      <SectionCard icon={MapPinIcon} title="Address Management" description="Manage your shipping addresses." />
+    </Link>
   );
 };
 
@@ -499,96 +401,127 @@ export default function ProfilePage() {
     const fetchProfile = async () => {
       setLoading(true);
       try {
-        const data = await getUserWithProfile();
-        if (!data?.user) {
-          router.replace('/login');
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          router.push('/login');
           return;
         }
-        setProfileData(data as UserWithProfile);
+
+        const userProfile = await getUserWithProfile(user.id);
+        setProfileData(userProfile);
       } catch (error) {
         console.error('Error fetching profile:', error);
-        router.replace('/login');
       } finally {
         setLoading(false);
       }
     };
-    void fetchProfile();
+
+    fetchProfile();
   }, [router]);
 
-  const handleProfileUpdated = useCallback((newProfile: Profile) => {
-    setProfileData(prev => prev ? ({ ...prev, profile: newProfile }) : null);
-  }, []);
-
   const handleLogout = async () => {
-    await signOut();
-    router.replace('/');
+    try {
+      await signOut();
+      window.dispatchEvent(new Event('storage'));
+      router.push('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
+  const handleProfileUpdated = (newProfile: Profile) => {
+    setProfileData(prev => prev ? { ...prev, profile: newProfile } : null);
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-950">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-red-500"></div>
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
       </div>
     );
   }
 
-  if (!profileData?.user || !profileData?.profile) {
+  if (!profileData) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-950">
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-white mb-4">Gagal memuat profil. Silakan login kembali.</p>
-          <button onClick={() => router.replace('/login')} className="px-4 py-2 bg-red-600 text-white rounded-lg">Kembali ke Login</button>
+          <h2 className="text-2xl font-bold text-white mb-4">Tidak dapat memuat profil</h2>
+          <button onClick={() => router.push('/')} className="bg-red-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-red-700 transition-colors">
+            Kembali ke Beranda
+          </button>
         </div>
       </div>
     );
   }
 
-  const { user, profile } = profileData;
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800 text-gray-100">
-      <div className="max-w-3xl mx-auto p-4 sm:p-6 lg:p-8">
-        <header className="flex flex-col sm:flex-row items-center gap-6 p-6 mb-8 bg-gray-900/50 backdrop-blur-md rounded-3xl border border-gray-700/50">
-            <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg overflow-hidden flex-shrink-0">
-                {profile.avatar_url ? (
-                    <Image key={profile.avatar_url} src={profile.avatar_url} alt="Avatar" width={96} height={96} className="w-full h-full object-cover" />
-                ) : (
-                    <UserCircleIcon className="w-20 h-20 text-white" />
-                )}
-            </div>
-            <div className="text-center sm:text-left flex-1">
-                <h1 className="text-3xl font-bold text-white">{profile.full_name || 'Pengguna Baru'}</h1>
-                <p className="text-slate-400">{user.email}</p>
-                 <span className={`mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${profile.role === 'admin' ? 'bg-emerald-900/70 text-emerald-300' : 'bg-blue-900/70 text-blue-300'}`}>
-                    {profile.role === 'admin' ? 'Administrator' : 'Pengguna'}
-                </span>
-            </div>
-            <div className="flex gap-2">
-                 {profile.role === 'admin' && (
-                    <button onClick={() => router.push('/admin')} className="p-3 bg-slate-700/50 hover:bg-slate-600/50 rounded-xl transition-all border border-slate-600/50 text-slate-300 hover:text-white">
-                        <ShieldCheckIcon className="w-5 h-5" />
-                    </button>
-                )}
-                <button onClick={handleLogout} className="p-3 bg-slate-700/50 hover:bg-slate-600/50 rounded-xl transition-all border border-slate-600/50 text-slate-300 hover:text-white">
-                    <ArrowRightStartOnRectangleIcon className="w-5 h-5" />
-                </button>
-            </div>
-        </header>
+    <div className="min-h-screen bg-gray-900 text-white p-6">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-12 pt-8">
+          <div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-red-400 to-pink-600 bg-clip-text text-transparent">
+              Profil Saya
+            </h1>
+            <p className="text-gray-400 text-lg mt-2">Kelola akun dan pengaturan Anda</p>
+          </div>
+          <Link href="/" className="text-gray-400 hover:text-white flex items-center gap-2 transition-colors">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            Kembali ke Beranda
+          </Link>
+        </div>
 
-        <main className="space-y-4">
-            <h2 className="text-lg font-semibold text-gray-400 px-4">Pengaturan Akun</h2>
-            <EditProfileSection profileData={profileData} onProfileUpdated={handleProfileUpdated} />
-            <AddressSection profileData={profileData} onProfileUpdated={handleProfileUpdated} />
-            <OrderHistorySection userId={user.id} />
+        {/* Profile Info Card */}
+        <div className="bg-gray-900/50 backdrop-blur-md rounded-3xl border border-gray-700/50 p-8 mb-8">
+          <div className="flex items-center gap-6">
+            <div className="w-24 h-24 rounded-full bg-gray-800 flex items-center justify-center overflow-hidden border-2 border-gray-700">
+              {profileData.profile?.avatar_url ? (
+                <Image src={profileData.profile.avatar_url} alt="Avatar" width={96} height={96} className="w-full h-full object-cover" />
+              ) : (
+                <UserCircleIcon className="w-20 h-20 text-gray-500" />
+              )}
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-white">{profileData.profile?.full_name || 'Nama belum diset'}</h2>
+              <p className="text-gray-400">{profileData.user.email}</p>
+              <div className="flex items-center gap-2 mt-2">
+                <ShieldCheckIcon className="w-5 h-5 text-green-400" />
+                <span className="text-sm text-green-400">Akun Terverifikasi</span>
+              </div>
+            </div>
+          </div>
+        </div>
 
-            <h2 className="text-lg font-semibold text-gray-400 px-4 pt-4">Keamanan</h2>
-            <ChangePasswordSection />
-            <DeleteAccountSection />
-        </main>
-         <div className="text-center mt-8">
-             <Link href="/" className="text-sm text-red-400 hover:text-red-300 hover:underline">Kembali ke Beranda</Link>
+        {/* Settings Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <EditProfileSection profileData={profileData} onProfileUpdated={handleProfileUpdated} />
+          <AddressSection profileData={profileData} onProfileUpdated={handleProfileUpdated} />
+          <ChangePasswordSection />
+          <OrderHistorySection userId={profileData.user.id} />
+        </div>
+
+        {/* Danger Zone */}
+        <div className="mb-8">
+          <h3 className="text-xl font-bold text-red-300 mb-4 flex items-center gap-2">
+            <ExclamationTriangleIcon className="w-6 h-6" />
+            Zona Berbahaya
+          </h3>
+          <DeleteAccountSection />
+        </div>
+
+        {/* Logout */}
+        <div className="text-center">
+          <button
+            onClick={handleLogout}
+            className="bg-gray-700 hover:bg-gray-600 text-white px-8 py-3 rounded-xl font-semibold transition-all flex items-center gap-2 mx-auto"
+          >
+            <ArrowRightStartOnRectangleIcon className="w-5 h-5" />
+            Keluar
+          </button>
         </div>
       </div>
     </div>
   );
-}
+} 

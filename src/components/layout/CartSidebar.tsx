@@ -107,10 +107,12 @@ export default function CartSidebar({ isOpen, onCloseAction }: CartSidebarProps)
   const calculateTotals = () => {
     const selectedCartItems = cartItems.filter(item => selectedItems.has(item.id));
     const subtotal = selectedCartItems.reduce((sum, item) => sum + (item.products.price * item.quantity), 0);
-    return { subtotal, itemCount: selectedCartItems.length };
+    const ppn = subtotal * 0.1; // PPN 10%
+    const total = subtotal + ppn;
+    return { subtotal, ppn, total, itemCount: selectedCartItems.length };
   };
 
-  const { subtotal, itemCount } = calculateTotals();
+  const { subtotal, ppn, total, itemCount } = calculateTotals();
 
   const renderContent = () => {
     if (loading) {
@@ -198,20 +200,58 @@ export default function CartSidebar({ isOpen, onCloseAction }: CartSidebarProps)
   const renderFooter = () => {
     if (!user || cartItems.length === 0) return null;
     return (
-      <div className="p-4 space-y-4">
-        <div className="flex justify-between font-bold text-lg p-2">
-            <span>Total</span>
-            <span>Rp {subtotal.toLocaleString('id-ID')}</span>
+      <div className="p-4 space-y-4 bg-gradient-to-br from-white to-gray-50 border-t border-gray-200">
+        {/* Price Breakdown */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-sm border border-gray-100 space-y-3">
+          <div className="text-sm font-medium text-gray-700 mb-3">Rincian Pembayaran</div>
+          
+          {/* Subtotal */}
+          <div className="flex justify-between items-center">
+            <span className="text-gray-600 text-sm">Subtotal ({itemCount} item)</span>
+            <span className="font-medium text-gray-900">Rp {subtotal.toLocaleString('id-ID')}</span>
+          </div>
+          
+          {/* PPN */}
+          <div className="flex justify-between items-center">
+            <span className="text-gray-600 text-sm flex items-center gap-1">
+              PPN 10%
+              <div className="group relative">
+                <ShieldCheckIcon className="w-3 h-3 text-gray-400 cursor-help" />
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                  Pajak Pertambahan Nilai
+                </div>
+              </div>
+            </span>
+            <span className="font-medium text-gray-900">Rp {ppn.toLocaleString('id-ID')}</span>
+          </div>
+          
+          {/* Divider */}
+          <div className="border-t border-gray-200 my-2"></div>
+          
+          {/* Total */}
+          <div className="flex justify-between items-center">
+            <span className="font-semibold text-gray-900">Total</span>
+            <span className="font-bold text-lg text-red-600">Rp {total.toLocaleString('id-ID')}</span>
+          </div>
         </div>
+
+        {/* Checkout Button */}
         <Link
           href="/checkout"
           onClick={itemCount === 0 ? (e) => e.preventDefault() : onCloseAction}
-          className={`w-full bg-red-600/90 text-white py-3 px-4 rounded-lg font-semibold hover:bg-red-700 transition-colors flex items-center justify-center gap-2 shadow-sm ${itemCount === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+          className={`w-full bg-gradient-to-r from-red-600 to-red-700 text-white py-3 px-4 rounded-xl font-semibold hover:from-red-700 hover:to-red-800 transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${itemCount === 0 ? 'opacity-50 cursor-not-allowed hover:transform-none' : ''}`}
           aria-disabled={itemCount === 0}
         >
-          <CreditCardIcon className="w-4 h-4" />
+          <CreditCardIcon className="w-5 h-5" />
           Checkout ({itemCount} item)
+          <ArrowRightIcon className="w-4 h-4 ml-1" />
         </Link>
+        
+        {/* Security Badge */}
+        <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
+          <ShieldCheckIcon className="w-4 h-4 text-green-500" />
+          <span>Transaksi aman dengan enkripsi SSL</span>
+        </div>
       </div>
     );
   };

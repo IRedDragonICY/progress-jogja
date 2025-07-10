@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
   console.log("---------------------------------------------------\n");
   // ===================================================================
 
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -58,11 +58,11 @@ export async function POST(req: NextRequest) {
 
   const dbId = uuidv4();
   const displayId = `PJ-${uuidv4().slice(0, 13).toUpperCase()}`;
-  let totalAmount = 0;
+  let subtotalAmount = 0;
 
   const orderItems: OrderItem[] = cartItems.map((item: CartItem) => {
     const itemTotal = (item.products?.price || 0) * item.quantity;
-    totalAmount += itemTotal;
+    subtotalAmount += itemTotal;
     return {
       product_id: item.products.id,
       name: item.products.name,
@@ -71,6 +71,10 @@ export async function POST(req: NextRequest) {
       image_url: item.products.image_urls?.[0] || null,
     };
   });
+
+  // Calculate PPN 10% and total
+  const ppnAmount = subtotalAmount * 0.1;
+  const totalAmount = subtotalAmount + ppnAmount;
 
   const { error: orderError } = await supabase
     .from('orders')
@@ -111,12 +115,20 @@ export async function POST(req: NextRequest) {
         phone: checkoutData.telepon,
       }
     },
-    item_details: orderItems.map(item => ({
-      id: item.product_id,
-      price: item.price,
-      quantity: item.quantity,
-      name: item.name,
-    })),
+    item_details: [
+      ...orderItems.map(item => ({
+        id: item.product_id,
+        price: item.price,
+        quantity: item.quantity,
+        name: item.name,
+      })),
+      {
+        id: 'PPN',
+        price: ppnAmount,
+        quantity: 1,
+        name: 'PPN 10%',
+      },
+    ],
      credit_card: {
       secure: true,
     },
