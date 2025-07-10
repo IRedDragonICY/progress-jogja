@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -43,10 +43,9 @@ const MapPicker = dynamic(() => import('@/components/MapPicker'), {
   ),
 });
 
-const AddressManagementPage = () => {
+// Component that uses useSearchParams
+const AddressManagementPageContent = ({ fromCheckout }: { fromCheckout: boolean }) => {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const fromCheckout = searchParams.get('from') === 'checkout';
   
   const [profileData, setProfileData] = useState<UserWithProfile | null>(null);
   const [addresses, setAddresses] = useState<Address[]>([]);
@@ -602,6 +601,30 @@ const AddressManagementPage = () => {
         </AlertDialog.Portal>
       </AlertDialog.Root>
     </div>
+  );
+};
+
+// Wrapper component that uses useSearchParams
+const AddressManagementPageWrapper = () => {
+  const searchParams = useSearchParams();
+  const fromCheckout = searchParams.get('from') === 'checkout';
+  
+  return <AddressManagementPageContent fromCheckout={fromCheckout} />;
+};
+
+// Loading component for Suspense fallback
+const AddressPageLoading = () => (
+  <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+  </div>
+);
+
+// Main export component with Suspense boundary
+const AddressManagementPage = () => {
+  return (
+    <Suspense fallback={<AddressPageLoading />}>
+      <AddressManagementPageWrapper />
+    </Suspense>
   );
 };
 
