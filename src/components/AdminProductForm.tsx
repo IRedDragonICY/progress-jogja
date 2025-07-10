@@ -120,6 +120,7 @@ const getInitialFormData = (draftData?: Partial<ProductFormData>): ProductFormDa
     name: draftData?.name || '',
     description: draftData?.description || null,
     product_type_id: draftData?.product_type_id || null,
+    price: draftData?.price || 0,
     image_urls: draftData?.image_urls || [],
     store_links: draftData?.store_links || [],
   };
@@ -202,7 +203,11 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === 'price') {
+      setFormData(prev => ({ ...prev, [name]: parseFloat(value) || 0 }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSelectChange = (value: string) => {
@@ -439,6 +444,31 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
                     placeholder="Jelaskan fitur, manfaat, dan spesifikasi produk Anda..."
                   />
                 </Form.Control>
+              </Form.Field>
+
+              <Form.Field name="price" className="space-y-2">
+                <Form.Label asChild>
+                  <Label.Root className="block text-sm font-medium text-red-400 mb-3">
+                    Harga Produk *
+                  </Label.Root>
+                </Form.Label>
+                <Form.Control asChild>
+                  <input
+                    type="number"
+                    name="price"
+                    value={formData.price || ''}
+                    onChange={handleChange}
+                    required
+                    disabled={isFormDisabled}
+                    className="w-full bg-gray-800/50 border border-gray-600 rounded-2xl px-4 py-4 text-white placeholder-gray-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 focus:outline-none transition-all duration-200 text-lg disabled:opacity-50"
+                    placeholder="Masukkan harga produk"
+                    min="0"
+                    step="any"
+                  />
+                </Form.Control>
+                <Form.Message match="valueMissing" className="text-red-400 text-sm mt-1">
+                  Harap masukkan harga produk
+                </Form.Message>
               </Form.Field>
 
               <div className="space-y-4">

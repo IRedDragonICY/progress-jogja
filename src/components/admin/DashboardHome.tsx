@@ -11,12 +11,14 @@ import {
   PencilIcon,
   BuildingStorefrontIcon
 } from '@heroicons/react/24/outline';
-import type { Product, ProductType, ProductDraft } from "@/types/supabase";
+import type { Product, ProductType, ProductDraft, StorageUsageData } from "@/types/supabase";
+import { StorageUsageWidget } from '@/components/admin/StorageUsageWidget';
 
 interface DashboardHomeProps {
   products: Product[];
   productTypes: ProductType[];
   userDrafts: ProductDraft[];
+  storageUsage: StorageUsageData | null;
   setShowDraftsDialog: (show: boolean) => void;
   onCreateNewProduct: () => void;
   onEditDraft: (draft: ProductDraft) => void;
@@ -92,7 +94,9 @@ export function DashboardHome({
   products,
   productTypes,
   userDrafts,
-                                onCreateNewProduct,
+  storageUsage,
+  setShowDraftsDialog,
+  onCreateNewProduct,
   onEditDraft,
   onSetActiveTab,
   isProcessing
@@ -112,6 +116,7 @@ export function DashboardHome({
 
         <Dialog.Trigger asChild>
             <button
+                onClick={() => setShowDraftsDialog(true)}
                 className="relative px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold rounded-2xl transition-all duration-300 shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:-translate-y-0.5 flex items-center gap-2.5 border border-amber-400/20">
               <DocumentTextIcon className="w-5 h-5" />
               <span>Draf</span>
@@ -156,47 +161,47 @@ export function DashboardHome({
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-        <div className="bg-gradient-to-br from-slate-800/60 to-slate-900/60 backdrop-blur-xl rounded-3xl p-8 border border-slate-700/50">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl flex items-center justify-center">
-              <PlusIcon className="w-6 h-6 text-white" />
+        <div className="space-y-8">
+           <StorageUsageWidget data={storageUsage} isLoading={!storageUsage} />
+           <div className="bg-gradient-to-br from-slate-800/60 to-slate-900/60 backdrop-blur-xl rounded-3xl p-8 border border-slate-700/50">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl flex items-center justify-center">
+                <PlusIcon className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-white">Tindakan Cepat</h3>
+                <p className="text-slate-400 text-sm">Fitur yang sering digunakan</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-xl font-bold text-white">Tindakan Cepat</h3>
-              <p className="text-slate-400 text-sm">Fitur yang sering digunakan</p>
+
+            <div className="space-y-4">
+              <QuickActionButton
+                onClick={onCreateNewProduct}
+                icon={PlusIcon}
+                variant="primary"
+                disabled={isProcessing}
+              >
+                Buat Produk Baru
+              </QuickActionButton>
+              <QuickActionButton
+                onClick={() => onSetActiveTab('products')}
+                icon={CubeIcon}
+              >
+                Kelola Produk
+              </QuickActionButton>
+              <QuickActionButton
+                onClick={() => { onSetActiveTab('products'); }}
+                icon={TagIcon}
+              >
+                Kelola Tipe
+              </QuickActionButton>
+              <QuickActionButton
+                onClick={() => onSetActiveTab('profile')}
+                icon={BuildingStorefrontIcon}
+              >
+                Ubah Profil
+              </QuickActionButton>
             </div>
-          </div>
-
-          <div className="space-y-4">
-            <QuickActionButton
-              onClick={onCreateNewProduct}
-              icon={PlusIcon}
-              variant="primary"
-              disabled={isProcessing}
-            >
-              Buat Produk Baru
-            </QuickActionButton>
-
-            <QuickActionButton
-              onClick={() => onSetActiveTab('products')}
-              icon={CubeIcon}
-            >
-              Kelola Produk
-            </QuickActionButton>
-
-            <QuickActionButton
-              onClick={() => { onSetActiveTab('products'); }}
-              icon={TagIcon}
-            >
-              Kelola Tipe
-            </QuickActionButton>
-
-            <QuickActionButton
-              onClick={() => onSetActiveTab('profile')}
-              icon={BuildingStorefrontIcon}
-            >
-              Ubah Profil
-            </QuickActionButton>
           </div>
         </div>
 
