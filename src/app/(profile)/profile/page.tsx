@@ -407,7 +407,7 @@ export default function ProfilePage() {
           return;
         }
 
-        const userProfile = await getUserWithProfile(user.id);
+        const userProfile = await getUserWithProfile();
         setProfileData(userProfile);
       } catch (error) {
         console.error('Error fetching profile:', error);
