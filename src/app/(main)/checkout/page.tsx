@@ -124,7 +124,7 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      const user = session?.user;
+      const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         await fetchCartAndProfile(user.id);
       } else {

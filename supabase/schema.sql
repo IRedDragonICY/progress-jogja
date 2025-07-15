@@ -209,6 +209,7 @@ CREATE POLICY "Users can manage their own cart" ON public.cart_items FOR ALL USI
 CREATE POLICY "Users can manage their own wishlist" ON public.wishlists FOR ALL USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can view their own orders" ON public.orders FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert their own orders" ON public.orders FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Admins can manage all orders" ON public.orders FOR ALL USING (is_admin());
 CREATE POLICY "Reviews are public" ON public.reviews FOR SELECT USING (true);
 CREATE POLICY "Users can insert reviews for their own completed orders" ON public.reviews FOR INSERT WITH CHECK (

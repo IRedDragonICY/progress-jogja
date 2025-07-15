@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
         midtrans_transaction_id: statusResponse.transaction_id,
         updated_at: new Date().toISOString()
       })
-      .eq('id', orderId);
+      .eq('display_id', orderId);
 
     if (error) {
       console.error('Failed to update order status:', error);
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
 
     // If payment is successful, clear the user's cart
     if (newStatus === 'paid') {
-        const { data: order } = await supabaseAdmin.from('orders').select('user_id').eq('id', orderId).single();
+        const { data: order } = await supabaseAdmin.from('orders').select('user_id').eq('display_id', orderId).single();
         if (order) {
             await supabaseAdmin.from('cart_items').delete().eq('user_id', order.user_id);
         }
