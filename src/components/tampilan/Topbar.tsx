@@ -45,8 +45,11 @@ export default function Topbar({ onCartToggle, onWishlistToggle }: TopbarProps) 
     };
     fetchUser();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-       if (event === 'SIGNED_IN' && session?.user) { fetchUser(); }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+       if (event === 'SIGNED_IN') { 
+         const { data: { user } } = await supabase.auth.getUser();
+         if (user) { fetchUser(); }
+       }
        else if (event === 'SIGNED_OUT') { setUserProfile(null); setCartCount(0); setWishlistCount(0); }
     });
 

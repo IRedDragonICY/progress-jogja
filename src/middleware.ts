@@ -41,10 +41,9 @@ export async function middleware(request: NextRequest) {
   // Langkah PENTING: Refresh session.
   // Ini akan memperbarui cookie otentikasi jika diperlukan.
   // Tanpa ini, API Route tidak akan mendapatkan session yang valid.
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { user }, error } = await supabase.auth.getUser()
 
   // Bagian di bawah ini adalah untuk proteksi route (opsional tapi sangat direkomendasikan)
-  const user = session?.user;
   const { pathname } = request.nextUrl;
 
   const authRoutes = ['/login', '/register'];
