@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import * as Tabs from '@radix-ui/react-tabs';
+import React, { useState, useMemo } from 'react';
 import * as Form from '@radix-ui/react-form';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as AlertDialog from '@radix-ui/react-alert-dialog';
+import * as Select from '@radix-ui/react-select';
 import Image from 'next/image';
 import {
   PlusIcon,
@@ -19,6 +19,10 @@ import {
   MagnifyingGlassIcon,
   XMarkIcon,
   LinkIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ChevronUpDownIcon,
+  ChevronDownIcon,
 } from '@heroicons/react/24/outline';
 import type { Product, ProductDraft, ProductType } from "@/types/supabase";
 
@@ -73,6 +77,130 @@ const ActionButton = React.forwardRef<HTMLButtonElement, {
 });
 ActionButton.displayName = 'ActionButton';
 
+const PaginationControls = ({
+  currentPage,
+  totalPages,
+  totalItems,
+  itemsPerPage,
+  onPageChange,
+  onItemsPerPageChange,
+  startIndex,
+  endIndex,
+}: {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
+  onPageChange: (page: number) => void;
+  onItemsPerPageChange: (itemsPerPage: number) => void;
+  startIndex: number;
+  endIndex: number;
+}) => {
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    const maxVisible = 5;
+    
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      const start = Math.max(1, currentPage - 2);
+      const end = Math.min(totalPages, currentPage + 2);
+      
+      if (start > 1) {
+        pages.push(1);
+        if (start > 2) pages.push('...');
+      }
+      
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      
+      if (end < totalPages) {
+        if (end < totalPages - 1) pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+    
+    return pages;
+  };
+
+  return (
+    <div className="flex flex-col sm:flex-row justify-between items-center gap-6 mt-8">
+      <div className="flex items-center gap-4">
+        <span className="text-sm text-slate-400">
+          Menampilkan {startIndex} - {endIndex} dari {totalItems} produk
+        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-slate-400">Tampilkan:</span>
+          <Select.Root value={itemsPerPage.toString()} onValueChange={(value) => onItemsPerPageChange(parseInt(value))}>
+            <Select.Trigger className="flex items-center gap-2 px-3 py-1.5 bg-slate-700/50 text-white border border-slate-600/50 rounded-lg hover:bg-slate-700/70 transition-all duration-200 min-w-[80px]">
+              <Select.Value />
+              <Select.Icon>
+                <ChevronDownIcon className="w-4 h-4" />
+              </Select.Icon>
+            </Select.Trigger>
+            <Select.Portal>
+              <Select.Content className="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden">
+                <Select.Viewport className="p-1">
+                  <Select.Item value="10" className="px-3 py-2 text-sm text-white hover:bg-slate-700 rounded-lg cursor-pointer outline-none data-[highlighted]:bg-slate-700">
+                    <Select.ItemText>10</Select.ItemText>
+                  </Select.Item>
+                  <Select.Item value="15" className="px-3 py-2 text-sm text-white hover:bg-slate-700 rounded-lg cursor-pointer outline-none data-[highlighted]:bg-slate-700">
+                    <Select.ItemText>15</Select.ItemText>
+                  </Select.Item>
+                  <Select.Item value="30" className="px-3 py-2 text-sm text-white hover:bg-slate-700 rounded-lg cursor-pointer outline-none data-[highlighted]:bg-slate-700">
+                    <Select.ItemText>30</Select.ItemText>
+                  </Select.Item>
+                </Select.Viewport>
+              </Select.Content>
+            </Select.Portal>
+          </Select.Root>
+        </div>
+      </div>
+      
+      {totalPages > 1 && (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <ChevronLeftIcon className="w-5 h-5" />
+          </button>
+          
+          {getPageNumbers().map((page, index) => (
+            <React.Fragment key={index}>
+              {typeof page === 'string' ? (
+                <span className="px-3 py-1.5 text-slate-500">...</span>
+              ) : (
+                <button
+                  onClick={() => onPageChange(page)}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-200 ${
+                    currentPage === page
+                      ? 'bg-red-500 text-white shadow-lg shadow-red-500/25'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                  }`}
+                >
+                  {page}
+                </button>
+              )}
+            </React.Fragment>
+          ))}
+          
+          <button
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <ChevronRightIcon className="w-5 h-5" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const ConfirmationDialog = ({ trigger, title, description, onConfirm, confirmButtonText, confirmButtonVariant }: {
     trigger: React.ReactNode;
@@ -110,7 +238,6 @@ const ConfirmationDialog = ({ trigger, title, description, onConfirm, confirmBut
     );
 };
 
-
 export function ProductsTab({
   products,
   userDrafts,
@@ -132,6 +259,36 @@ export function ProductsTab({
   const [editingProductType, setEditingProductType] = useState<ProductType | null>(null);
   const [editedProductTypeName, setEditedProductTypeName] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // Pagination calculations
+  const { paginatedProducts, totalPages, startIndex, endIndex } = useMemo(() => {
+    const startIdx = (currentPage - 1) * itemsPerPage;
+    const endIdx = Math.min(startIdx + itemsPerPage, products.length);
+    return {
+      paginatedProducts: products.slice(startIdx, endIdx),
+      totalPages: Math.ceil(products.length / itemsPerPage),
+      startIndex: products.length > 0 ? startIdx + 1 : 0,
+      endIndex: endIdx
+    };
+  }, [products, currentPage, itemsPerPage]);
+
+  // Reset to first page when search changes or items per page changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, itemsPerPage]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1);
+  };
 
   const handleViewDetails = (product: Product) => {
     setSelectedProduct(product);
@@ -160,7 +317,7 @@ export function ProductsTab({
   };
 
   return (
-    <Tabs.Content value="products" className="p-8">
+    <div className="p-8">
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
         <div>
           <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent mb-2">
@@ -227,7 +384,7 @@ export function ProductsTab({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-700/30">
-              {products.map(product => (
+              {paginatedProducts.map(product => (
                 <tr key={product.id} onClick={() => handleViewDetails(product)} className="group hover:bg-slate-700/20 transition-all duration-200 cursor-pointer">
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-4">
@@ -276,7 +433,7 @@ export function ProductsTab({
                             </ActionButton>
                           }
                           title={`${product.is_published ? 'Batalkan Penerbitan' : 'Terbitkan'} Produk`}
-                          description={`Apakah Anda yakin ingin ${product.is_published ? 'menyembunyikan' : 'menerbitkan'} “${product.name}”?`}
+                          description={`Apakah Anda yakin ingin ${product.is_published ? 'menyembunyikan' : 'menerbitkan'} "${product.name}"?`}
                           onConfirm={() => onTogglePublish(product)}
                           confirmButtonText={product.is_published ? 'Batal Terbit' : 'Terbitkan'}
                           confirmButtonVariant={product.is_published ? 'warning' : 'success'}
@@ -289,7 +446,7 @@ export function ProductsTab({
                             </ActionButton>
                           }
                           title="Hapus Produk"
-                          description={`Apakah Anda yakin ingin menghapus “${product.name}”? Tindakan ini tidak dapat dibatalkan.`}
+                          description={`Apakah Anda yakin ingin menghapus "${product.name}"? Tindakan ini tidak dapat dibatalkan.`}
                           onConfirm={() => onDeleteProduct(product.id)}
                           confirmButtonText="Hapus"
                           confirmButtonVariant="danger"
@@ -298,16 +455,25 @@ export function ProductsTab({
                   </td>
                 </tr>
               ))}
-              {!products.length && !isDataLoading && (
+              {!paginatedProducts.length && !isDataLoading && (
                 <tr>
                   <td colSpan={4} className="px-8 py-16 text-center">
                     <div className="flex flex-col items-center">
                       <div className="w-20 h-20 bg-slate-700/50 rounded-3xl flex items-center justify-center mb-6">
                         <MagnifyingGlassIcon className="w-10 h-10 text-slate-500" />
                       </div>
-                      <h3 className="text-xl font-semibold text-slate-300 mb-2">Tidak ada produk yang cocok</h3>
-                      <p className="text-slate-500 mb-6">{searchTerm ? 'Coba kata kunci lain atau bersihkan pencarian.' : 'Buat produk pertama Anda untuk memulai.'}</p>
-                      {!searchTerm && (
+                      <h3 className="text-xl font-semibold text-slate-300 mb-2">
+                        {products.length === 0 ? 'Tidak ada produk' : 'Tidak ada produk yang cocok'}
+                      </h3>
+                      <p className="text-slate-500 mb-6">
+                        {products.length === 0 
+                          ? 'Buat produk pertama Anda untuk memulai.'
+                          : searchTerm 
+                            ? 'Coba kata kunci lain atau bersihkan pencarian.'
+                            : 'Tidak ada produk yang sesuai dengan filter saat ini.'
+                        }
+                      </p>
+                      {products.length === 0 && (
                         <button
                           onClick={onCreateNewProduct}
                           className="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold rounded-xl transition-all duration-300"
@@ -322,7 +488,24 @@ export function ProductsTab({
             </tbody>
           </table>
         </div>
+        
+        {/* Pagination Controls */}
+        {products.length > 0 && (
+          <div className="px-8 py-6 border-t border-slate-700/50">
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={products.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={handlePageChange}
+              onItemsPerPageChange={handleItemsPerPageChange}
+              startIndex={startIndex}
+              endIndex={endIndex}
+            />
+          </div>
+        )}
       </div>
+      
       <div className="mt-12">
         <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent mb-2">
           Tipe Produk
@@ -556,6 +739,6 @@ export function ProductsTab({
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
-    </Tabs.Content>
+    </div>
   );
 }

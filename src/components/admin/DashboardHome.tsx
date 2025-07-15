@@ -1,5 +1,4 @@
 import React from 'react';
-import * as Tabs from '@radix-ui/react-tabs';
 import * as Dialog from '@radix-ui/react-dialog';
 import {
   CubeIcon,
@@ -9,7 +8,8 @@ import {
   PlusIcon,
   DocumentTextIcon,
   PencilIcon,
-  BuildingStorefrontIcon
+  BuildingStorefrontIcon,
+  HomeIcon
 } from '@heroicons/react/24/outline';
 import type { Product, ProductType, ProductDraft, StorageUsageData } from "@/types/supabase";
 import { StorageUsageWidget } from '@/components/admin/StorageUsageWidget';
@@ -105,7 +105,7 @@ export function DashboardHome({
   const unpublishedProductsCount = products.filter(p => !p.is_published).length;
 
   return (
-    <Tabs.Content value="home" className="p-8">
+    <div className="p-8">
       <div className="flex justify-between items-center mb-8">
         <div>
           <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent mb-2">
@@ -114,19 +114,29 @@ export function DashboardHome({
           <p className="text-slate-400">Pantau produk dan kelola toko Anda</p>
         </div>
 
-        <Dialog.Trigger asChild>
-            <button
-                onClick={() => setShowDraftsDialog(true)}
-                className="relative px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold rounded-2xl transition-all duration-300 shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:-translate-y-0.5 flex items-center gap-2.5 border border-amber-400/20">
-              <DocumentTextIcon className="w-5 h-5" />
-              <span>Draf</span>
-              {userDrafts.length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
-                  {userDrafts.length}
-                </span>
-              )}
-            </button>
-        </Dialog.Trigger>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => window.open('/', '_blank')}
+            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold rounded-2xl transition-all duration-300 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:-translate-y-0.5 flex items-center gap-2.5 border border-blue-400/20"
+          >
+            <HomeIcon className="w-5 h-5" />
+            <span>Halaman Utama</span>
+          </button>
+          
+          <Dialog.Trigger asChild>
+              <button
+                  onClick={() => setShowDraftsDialog(true)}
+                  className="relative px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold rounded-2xl transition-all duration-300 shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:-translate-y-0.5 flex items-center gap-2.5 border border-amber-400/20">
+                <DocumentTextIcon className="w-5 h-5" />
+                <span>Draf</span>
+                {userDrafts.length > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
+                    {userDrafts.length}
+                  </span>
+                )}
+              </button>
+          </Dialog.Trigger>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -196,6 +206,12 @@ export function DashboardHome({
                 Kelola Tipe
               </QuickActionButton>
               <QuickActionButton
+                onClick={() => window.open('/', '_blank')}
+                icon={HomeIcon}
+              >
+                Lihat Halaman Utama
+              </QuickActionButton>
+              <QuickActionButton
                 onClick={() => onSetActiveTab('profile')}
                 icon={BuildingStorefrontIcon}
               >
@@ -254,6 +270,6 @@ export function DashboardHome({
           </div>
         </div>
       </div>
-    </Tabs.Content>
+    </div>
   );
 }

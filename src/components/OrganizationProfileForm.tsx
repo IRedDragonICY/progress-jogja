@@ -24,6 +24,176 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
+// Material Design Input Component
+const MaterialInput: React.FC<{
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  type?: string;
+  required?: boolean;
+  icon?: React.ElementType;
+}> = ({ label, value, onChange, placeholder, type = 'text', required = false, icon: Icon }) => {
+  const [isFocused, setIsFocused] = useState(false);
+  const [hasValue, setHasValue] = useState(false);
+
+  useEffect(() => {
+    setHasValue(value.length > 0);
+  }, [value]);
+
+  const isFloating = isFocused || hasValue;
+
+  return (
+    <div className="relative">
+      <div className="relative">
+        {Icon && (
+          <div className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10">
+            <Icon className="w-5 h-5 text-gray-400" />
+          </div>
+        )}
+        <input
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          placeholder={isFloating ? placeholder : ''}
+          className={`
+            w-full h-14 px-4 py-4 bg-gray-800/50 border-2 border-gray-700/50 rounded-xl
+            text-white placeholder-gray-500 transition-all duration-200 ease-in-out
+            focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none
+            hover:border-gray-600/70 hover:bg-gray-800/70
+            ${Icon ? 'pl-12' : 'pl-4'}
+          `}
+          required={required}
+        />
+        <label
+          className={`
+            absolute left-4 transition-all duration-200 ease-in-out pointer-events-none
+            ${Icon ? 'left-12' : 'left-4'}
+            ${isFloating 
+              ? 'top-2 text-xs font-medium text-blue-400 bg-gray-800 px-2 rounded-md transform -translate-y-1' 
+              : 'top-1/2 text-base text-gray-400 transform -translate-y-1/2'
+            }
+          `}
+        >
+          {label} {required && <span className="text-red-400">*</span>}
+        </label>
+      </div>
+    </div>
+  );
+};
+
+// Material Design Textarea Component
+const MaterialTextarea: React.FC<{
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  rows?: number;
+  required?: boolean;
+}> = ({ label, value, onChange, placeholder, rows = 4, required = false }) => {
+  const [isFocused, setIsFocused] = useState(false);
+  const [hasValue, setHasValue] = useState(false);
+
+  useEffect(() => {
+    setHasValue(value.length > 0);
+  }, [value]);
+
+  const isFloating = isFocused || hasValue;
+
+  return (
+    <div className="relative">
+      <div className="relative">
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          placeholder={isFloating ? placeholder : ''}
+          rows={rows}
+          className={`
+            w-full px-4 py-4 bg-gray-800/50 border-2 border-gray-700/50 rounded-xl
+            text-white placeholder-gray-500 transition-all duration-200 ease-in-out
+            focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none
+            hover:border-gray-600/70 hover:bg-gray-800/70 resize-none
+            ${isFloating ? 'pt-8' : 'pt-4'}
+          `}
+          required={required}
+        />
+        <label
+          className={`
+            absolute left-4 transition-all duration-200 ease-in-out pointer-events-none
+            ${isFloating 
+              ? 'top-2 text-xs font-medium text-blue-400 bg-gray-800 px-2 rounded-md transform -translate-y-1' 
+              : 'top-4 text-base text-gray-400'
+            }
+          `}
+        >
+          {label} {required && <span className="text-red-400">*</span>}
+        </label>
+      </div>
+    </div>
+  );
+};
+
+// Material Design Card Component for list items
+const MaterialCard: React.FC<{
+  children: React.ReactNode;
+  onDelete?: () => void;
+  dragHandle?: React.ReactNode;
+}> = ({ children, onDelete, dragHandle }) => (
+  <div className="bg-gray-800/30 backdrop-blur-sm rounded-xl border border-gray-700/50 p-6 shadow-lg hover:shadow-xl transition-all duration-200 group">
+    <div className="flex items-start gap-4">
+      {dragHandle && (
+        <div className="mt-2 opacity-50 group-hover:opacity-100 transition-opacity">
+          {dragHandle}
+        </div>
+      )}
+      <div className="flex-1 space-y-4">
+        {children}
+      </div>
+      {onDelete && (
+        <button
+          type="button"
+          onClick={onDelete}
+          className="mt-2 p-2 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-lg transition-all duration-200 opacity-50 group-hover:opacity-100"
+        >
+          <TrashIcon className="w-5 h-5" />
+        </button>
+      )}
+    </div>
+  </div>
+);
+
+// Material Design Button Component
+const MaterialButton: React.FC<{
+  onClick: () => void;
+  children: React.ReactNode;
+  variant?: 'primary' | 'secondary';
+  icon?: React.ElementType;
+  disabled?: boolean;
+}> = ({ onClick, children, variant = 'secondary', icon: Icon, disabled = false }) => {
+  const baseClasses = "flex items-center justify-center gap-3 px-6 py-3 rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed";
+  
+  const variantClasses = {
+    primary: "bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 shadow-lg hover:shadow-xl",
+    secondary: "bg-gray-700/70 text-white hover:bg-gray-600/80 hover:text-gray-100 border border-gray-600/70 hover:border-gray-500/80 shadow-md hover:shadow-lg"
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`${baseClasses} ${variantClasses[variant]}`}
+    >
+      {Icon && <Icon className="w-5 h-5" />}
+      {children}
+    </button>
+  );
+};
+
 const MapPicker = dynamic(() => import('./MapPicker'), {
   ssr: false,
   loading: () => <div className="h-[300px] w-full bg-gray-700 rounded-xl flex items-center justify-center text-gray-400">Memuat Peta...</div>
@@ -45,12 +215,19 @@ const getInitialFormData = (data?: OrganizationProfileData | null): Organization
 });
 
 const Section: React.FC<{ title: string; icon: React.ElementType; children: React.ReactNode }> = ({ title, icon: Icon, children }) => (
-  <div className="space-y-4 p-6 bg-gray-800/50 rounded-xl border border-gray-700/30">
-    <div className="flex items-center gap-3 mb-4">
-      <Icon className="w-6 h-6 text-red-400" />
-      <h3 className="text-xl font-semibold text-red-400">{title}</h3>
+  <div className="space-y-8 p-8 bg-gray-800/40 backdrop-blur-xl rounded-2xl border border-gray-700/30 shadow-xl">
+    <div className="flex items-center gap-4 mb-6 pb-4 border-b border-gray-700/30">
+      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+        <Icon className="w-6 h-6 text-white" />
+      </div>
+      <div>
+        <h3 className="text-2xl font-bold text-white">{title}</h3>
+        <p className="text-gray-400 text-sm mt-1">Kelola informasi {title.toLowerCase()}</p>
+      </div>
     </div>
-    {children}
+    <div className="space-y-6">
+      {children}
+    </div>
   </div>
 );
 
@@ -118,36 +295,150 @@ const SortableSection = <T extends { id: string }>({
 type ItemUpdateHandler<T> = <K extends keyof T>(id: string, field: K, value: T[K]) => void;
 
 const AddressItemForm = memo<{ item: AddressItem; index: number; onUpdate: ItemUpdateHandler<AddressItem>; onPositionChange: (id: string, lat: number, lng: number) => void; onRemove: (id: string) => void }>(({ item, index, onUpdate, onPositionChange, onRemove }) => (
-  <div className="w-full space-y-3">
-    <div className="flex justify-between items-center"><Label.Root className="input-label-sm !mb-0 text-base">Alamat {index + 1}</Label.Root><Tooltip.Root><Tooltip.Trigger asChild><button type="button" onClick={() => onRemove(item.id)} className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-md transition-colors"><TrashIcon className="w-5 h-5" /></button></Tooltip.Trigger><Tooltip.Portal><Tooltip.Content className="bg-gray-900 text-white px-2 py-1 rounded text-sm shadow-lg border border-gray-700 z-[101]" sideOffset={5}>Hapus Alamat<Tooltip.Arrow className="fill-gray-900" /></Tooltip.Content></Tooltip.Portal></Tooltip.Root></div>
-    <Form.Field name={`address_text_${item.id}`}><Form.Control asChild><input type="text" value={item.text} onChange={e => onUpdate(item.id, 'text', e.target.value)} className="input-field-sm" placeholder="Alamat Lengkap" /></Form.Control></Form.Field>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3"><Form.Field name={`address_lat_${item.id}`}><Form.Label asChild><Label.Root className="input-label-sm">Lintang</Label.Root></Form.Label><Form.Control asChild><input type="number" step="any" value={item.latitude ?? ''} onChange={e => onUpdate(item.id, 'latitude', parseFloat(e.target.value) || null)} className="input-field-sm" placeholder="cth., -7.7956" /></Form.Control></Form.Field><Form.Field name={`address_lon_${item.id}`}><Form.Label asChild><Label.Root className="input-label-sm">Bujur</Label.Root></Form.Label><Form.Control asChild><input type="number" step="any" value={item.longitude ?? ''} onChange={e => onUpdate(item.id, 'longitude', parseFloat(e.target.value) || null)} className="input-field-sm" placeholder="cth., 110.3695" /></Form.Control></Form.Field></div>
-    <MapPicker initialPosition={item.latitude && item.longitude ? [item.latitude, item.longitude] : null} onPositionChange={(lat, lng) => onPositionChange(item.id, lat, lng)} /><Form.Field name={`address_notes_${item.id}`}><Form.Label asChild><Label.Root className="input-label-sm">Catatan (Opsional)</Label.Root></Form.Label><Form.Control asChild><input type="text" value={item.notes || ''} onChange={e => onUpdate(item.id, 'notes', e.target.value)} className="input-field-sm" placeholder="cth., Kantor Pusat" /></Form.Control></Form.Field>
-  </div>
+  <MaterialCard onDelete={() => onRemove(item.id)}>
+    <div className="mb-4">
+      <h4 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
+        <MapPinIcon className="w-5 h-5 text-blue-400" />
+        Alamat {index + 1}
+      </h4>
+      <div className="w-full h-px bg-gradient-to-r from-blue-500/50 to-transparent"></div>
+    </div>
+    
+    <MaterialInput
+      label="Alamat Lengkap"
+      value={item.text}
+      onChange={(value) => onUpdate(item.id, 'text', value)}
+      placeholder="Masukkan alamat lengkap"
+      icon={MapPinIcon}
+    />
+    
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <MaterialInput
+        label="Lintang (Latitude)"
+        value={item.latitude?.toString() || ''}
+        onChange={(value) => onUpdate(item.id, 'latitude', parseFloat(value) || null)}
+        placeholder="cth., -7.7956"
+        type="number"
+      />
+      <MaterialInput
+        label="Bujur (Longitude)"
+        value={item.longitude?.toString() || ''}
+        onChange={(value) => onUpdate(item.id, 'longitude', parseFloat(value) || null)}
+        placeholder="cth., 110.3695"
+        type="number"
+      />
+    </div>
+    
+    <div className="bg-gray-800/50 rounded-xl border border-gray-700/50 p-4">
+      <h5 className="text-sm font-medium text-gray-300 mb-3">Pilih Lokasi di Peta</h5>
+      <MapPicker 
+        initialPosition={item.latitude && item.longitude ? [item.latitude, item.longitude] : null} 
+        onPositionChange={(lat, lng) => onPositionChange(item.id, lat, lng)} 
+      />
+    </div>
+    
+    <MaterialInput
+      label="Catatan"
+      value={item.notes || ''}
+      onChange={(value) => onUpdate(item.id, 'notes', value)}
+      placeholder="cth., Kantor Pusat, Gedung A Lantai 2"
+    />
+  </MaterialCard>
 ));
 AddressItemForm.displayName = 'AddressItemForm';
 
 const ContactItemForm = memo<{ item: ContactItem; onUpdate: ItemUpdateHandler<ContactItem>; onRemove: (id: string) => void }>(({ item, onUpdate, onRemove }) => (
-    <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
-        <Form.Field name={`phone_number_${item.id}`} className="flex-grow"><Form.Label asChild><Label.Root className="input-label-sm">Nomor Telepon</Label.Root></Form.Label><Form.Control asChild><input type="tel" value={item.number} onChange={e => onUpdate(item.id, 'number', e.target.value)} className="input-field-sm" placeholder="+62 123 4567 890" /></Form.Control></Form.Field>
-        <div className="flex items-end gap-3"><Form.Field name={`phone_label_${item.id}`} className="flex-grow"><Form.Label asChild><Label.Root className="input-label-sm">Label</Label.Root></Form.Label><Form.Control asChild><input type="text" value={item.label || ''} onChange={e => onUpdate(item.id, 'label', e.target.value)} className="input-field-sm" placeholder="cth., Kantor" /></Form.Control></Form.Field><Tooltip.Root><Tooltip.Trigger asChild><button type="button" onClick={() => onRemove(item.id)} className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-md transition-colors mb-px"><TrashIcon className="w-5 h-5" /></button></Tooltip.Trigger><Tooltip.Portal><Tooltip.Content className="bg-gray-900 text-white px-2 py-1 rounded text-sm shadow-lg border border-gray-700 z-[101]" sideOffset={5}>Hapus Nomor<Tooltip.Arrow className="fill-gray-900" /></Tooltip.Content></Tooltip.Portal></Tooltip.Root></div>
+  <MaterialCard onDelete={() => onRemove(item.id)}>
+    <div className="mb-4">
+      <h4 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
+        <PhoneIcon className="w-5 h-5 text-green-400" />
+        Kontak Telepon
+      </h4>
+      <div className="w-full h-px bg-gradient-to-r from-green-500/50 to-transparent"></div>
     </div>
+    
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <MaterialInput
+        label="Nomor Telepon"
+        value={item.number}
+        onChange={(value) => onUpdate(item.id, 'number', value)}
+        placeholder="+62 123 4567 890"
+        type="tel"
+        icon={PhoneIcon}
+        required
+      />
+      <MaterialInput
+        label="Label"
+        value={item.label || ''}
+        onChange={(value) => onUpdate(item.id, 'label', value)}
+        placeholder="cth., Kantor, Mobile, WhatsApp"
+      />
+    </div>
+  </MaterialCard>
 ));
 ContactItemForm.displayName = 'ContactItemForm';
 
 const SocialMediaItemForm = memo<{ item: SocialMediaLink; onUpdate: ItemUpdateHandler<SocialMediaLink>; onRemove: (id: string) => void }>(({ item, onUpdate, onRemove }) => (
-    <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
-      <Form.Field name={`social_platform_${item.id}`} className="flex-grow"><Form.Label asChild><Label.Root className="input-label-sm">Platform</Label.Root></Form.Label><Form.Control asChild><input type="text" value={item.platform} onChange={e => onUpdate(item.id, 'platform', e.target.value)} className="input-field-sm" placeholder="cth., Instagram" /></Form.Control></Form.Field>
-       <div className="flex items-end gap-3"><Form.Field name={`social_url_${item.id}`} className="flex-grow"><Form.Label asChild><Label.Root className="input-label-sm">URL</Label.Root></Form.Label><Form.Control asChild><input type="url" value={item.url} onChange={e => onUpdate(item.id, 'url', e.target.value)} className="input-field-sm" placeholder="https://..." /></Form.Control></Form.Field><Tooltip.Root><Tooltip.Trigger asChild><button type="button" onClick={() => onRemove(item.id)} className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-md transition-colors mb-px"><TrashIcon className="w-5 h-5" /></button></Tooltip.Trigger><Tooltip.Portal><Tooltip.Content className="bg-gray-900 text-white px-2 py-1 rounded text-sm shadow-lg border border-gray-700 z-[101]" sideOffset={5}>Hapus Tautan<Tooltip.Arrow className="fill-gray-900" /></Tooltip.Content></Tooltip.Portal></Tooltip.Root></div>
+  <MaterialCard onDelete={() => onRemove(item.id)}>
+    <div className="mb-4">
+      <h4 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
+        <GlobeAltIcon className="w-5 h-5 text-pink-400" />
+        Media Sosial
+      </h4>
+      <div className="w-full h-px bg-gradient-to-r from-pink-500/50 to-transparent"></div>
     </div>
+    
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <MaterialInput
+        label="Platform"
+        value={item.platform}
+        onChange={(value) => onUpdate(item.id, 'platform', value)}
+        placeholder="cth., Instagram, Facebook, Twitter"
+        icon={GlobeAltIcon}
+        required
+      />
+      <MaterialInput
+        label="URL"
+        value={item.url}
+        onChange={(value) => onUpdate(item.id, 'url', value)}
+        placeholder="https://instagram.com/username"
+        type="url"
+        required
+      />
+    </div>
+  </MaterialCard>
 ));
 SocialMediaItemForm.displayName = 'SocialMediaItemForm';
 
 const OrganizationMemberForm = memo<{ item: OrganizationMember; onUpdate: ItemUpdateHandler<OrganizationMember>; onRemove: (id: string) => void }>(({ item, onUpdate, onRemove }) => (
-    <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
-      <Form.Field name={`org_position_${item.id}`} className="flex-grow"><Form.Label asChild><Label.Root className="input-label-sm">Posisi</Label.Root></Form.Label><Form.Control asChild><input type="text" value={item.position} onChange={e => onUpdate(item.id, 'position', e.target.value)} className="input-field-sm" placeholder="cth., Direktur" /></Form.Control></Form.Field>
-       <div className="flex items-end gap-3"><Form.Field name={`org_name_${item.id}`} className="flex-grow"><Form.Label asChild><Label.Root className="input-label-sm">Nama</Label.Root></Form.Label><Form.Control asChild><input type="text" value={item.name} onChange={e => onUpdate(item.id, 'name', e.target.value)} className="input-field-sm" placeholder="Nama Lengkap" /></Form.Control></Form.Field><Tooltip.Root><Tooltip.Trigger asChild><button type="button" onClick={() => onRemove(item.id)} className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-md transition-colors mb-px"><TrashIcon className="w-5 h-5" /></button></Tooltip.Trigger><Tooltip.Portal><Tooltip.Content className="bg-gray-900 text-white px-2 py-1 rounded text-sm shadow-lg border border-gray-700 z-[101]" sideOffset={5}>Hapus Anggota<Tooltip.Arrow className="fill-gray-900" /></Tooltip.Content></Tooltip.Portal></Tooltip.Root></div>
+  <MaterialCard onDelete={() => onRemove(item.id)}>
+    <div className="mb-4">
+      <h4 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
+        <UsersIcon className="w-5 h-5 text-orange-400" />
+        Anggota Organisasi
+      </h4>
+      <div className="w-full h-px bg-gradient-to-r from-orange-500/50 to-transparent"></div>
     </div>
+    
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <MaterialInput
+        label="Posisi"
+        value={item.position}
+        onChange={(value) => onUpdate(item.id, 'position', value)}
+        placeholder="cth., Direktur, Ketua, Sekretaris"
+        icon={BriefcaseIcon}
+        required
+      />
+      <MaterialInput
+        label="Nama Lengkap"
+        value={item.name}
+        onChange={(value) => onUpdate(item.id, 'name', value)}
+        placeholder="Nama lengkap anggota"
+        icon={UsersIcon}
+        required
+      />
+    </div>
+  </MaterialCard>
 ));
 OrganizationMemberForm.displayName = 'OrganizationMemberForm';
 
@@ -524,7 +815,12 @@ const InternationalEventItemForm = memo<{ item: InternationalEvent; onUpdate: It
 InternationalEventItemForm.displayName = 'InternationalEventItemForm';
 
 
-const OrganizationProfileForm: React.FC<{ initialData: OrganizationProfileData | null; onSave: (data: OrganizationProfileData) => Promise<void>; isSaving: boolean; }> = ({ initialData, onSave, isSaving }) => {
+const OrganizationProfileForm: React.FC<{ 
+  initialData: OrganizationProfileData | null; 
+  onSave: (data: OrganizationProfileData) => Promise<void>; 
+  isSaving: boolean; 
+  activeSection?: string;
+}> = ({ initialData, onSave, isSaving, activeSection }) => {
   const [formData, setFormData] = useState<OrganizationProfileData>(() => getInitialFormData(initialData));
 
   useEffect(() => { setFormData(getInitialFormData(initialData)); }, [initialData]);
@@ -540,6 +836,384 @@ const OrganizationProfileForm: React.FC<{ initialData: OrganizationProfileData |
     return { educationPartners, industryPartners };
   }, [formData.partnerships]);
 
+  // Render individual sections based on activeSection
+  const renderSection = (sectionId: string) => {
+    switch (sectionId) {
+      case 'general':
+        return (
+          <Section title="Informasi Umum" icon={BuildingOfficeIcon}>
+            <MaterialInput
+              label="Slogan Organisasi"
+              value={formData.slogan || ''}
+              onChange={(value) => setFormData(p => ({...p, slogan: value}))}
+              placeholder="Masukkan slogan organisasi Anda"
+              icon={BuildingOfficeIcon}
+            />
+            <MaterialInput
+              label="Email Organisasi"
+              value={formData.email || ''}
+              onChange={(value) => setFormData(p => ({...p, email: value}))}
+              placeholder="contoh@organisasi.com"
+              type="email"
+              icon={GlobeAltIcon}
+            />
+          </Section>
+        );
+
+      case 'addresses':
+        return (
+          <Section title="Alamat" icon={MapPinIcon}>
+            <div className="space-y-6">
+              {formData.addresses.length > 0 ? (
+                <SortableSection<AddressItem>
+                    items={formData.addresses}
+                    onReorder={(reordered) => setFormData(p => ({ ...p, addresses: reordered }))}
+                    renderItem={(item, index) => (
+                        <AddressItemForm
+                            item={item}
+                            index={index}
+                            onUpdate={(id, field, value) => setFormData(p => ({ ...p, addresses: p.addresses.map(i => i.id === id ? { ...i, [field]: value } : i) }))}
+                            onPositionChange={(id, lat, lng) => setFormData(p => ({ ...p, addresses: p.addresses.map(i => i.id === id ? { ...i, latitude: lat, longitude: lng } : i) }))}
+                            onRemove={(id) => setFormData(p => ({ ...p, addresses: p.addresses.filter(i => i.id !== id) }))}
+                        />
+                    )}
+                />
+              ) : (
+                <div className="text-center py-12 bg-gray-800/20 rounded-xl border-2 border-dashed border-gray-600/50">
+                  <MapPinIcon className="w-16 h-16 text-gray-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-300 mb-2">Belum Ada Alamat</h3>
+                  <p className="text-gray-400 text-sm">Tambahkan alamat organisasi Anda</p>
+                </div>
+              )}
+              <MaterialButton
+                onClick={() => setFormData(p => ({...p, addresses: [...p.addresses, {id: uuidv4(), text: '', latitude: null, longitude: null, notes: ''}] }))}
+                icon={PlusIcon}
+                variant="secondary"
+              >
+                Tambah Alamat Baru
+              </MaterialButton>
+            </div>
+          </Section>
+        );
+
+      case 'contacts':
+        return (
+          <Section title="Nomor Kontak" icon={PhoneIcon}>
+            <div className="space-y-6">
+              {formData.phone_numbers.length > 0 ? (
+                <SortableSection<ContactItem>
+                    items={formData.phone_numbers}
+                    onReorder={(reordered) => setFormData(p => ({ ...p, phone_numbers: reordered }))}
+                    renderItem={(item) => (
+                        <ContactItemForm
+                            item={item}
+                            onUpdate={(id, field, value) => setFormData(p => ({ ...p, phone_numbers: p.phone_numbers.map(i => i.id === id ? { ...i, [field]: value } : i) }))}
+                            onRemove={(id) => setFormData(p => ({...p, phone_numbers: p.phone_numbers.filter(i => i.id !== id)}))}
+                        />
+                    )}
+                />
+              ) : (
+                <div className="text-center py-12 bg-gray-800/20 rounded-xl border-2 border-dashed border-gray-600/50">
+                  <PhoneIcon className="w-16 h-16 text-gray-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-300 mb-2">Belum Ada Kontak</h3>
+                  <p className="text-gray-400 text-sm">Tambahkan nomor telepon organisasi Anda</p>
+                </div>
+              )}
+              <MaterialButton
+                onClick={() => setFormData(p => ({ ...p, phone_numbers: [...p.phone_numbers, {id: uuidv4(), number: '', label: ''}]}))}
+                icon={PlusIcon}
+                variant="secondary"
+              >
+                Tambah Nomor Telepon
+              </MaterialButton>
+            </div>
+          </Section>
+        );
+
+      case 'social':
+        return (
+          <Section title="Media Sosial" icon={GlobeAltIcon}>
+            <div className="space-y-6">
+              {formData.social_media_links.length > 0 ? (
+                <SortableSection<SocialMediaLink>
+                    items={formData.social_media_links}
+                    onReorder={(reordered) => setFormData(p => ({ ...p, social_media_links: reordered }))}
+                    renderItem={(item) => (
+                        <SocialMediaItemForm
+                            item={item}
+                            onUpdate={(id, field, value) => setFormData(p => ({ ...p, social_media_links: p.social_media_links.map(i => i.id === id ? { ...i, [field]: value } : i) }))}
+                            onRemove={(id) => setFormData(p => ({...p, social_media_links: p.social_media_links.filter(i => i.id !== id)}))}
+                        />
+                    )}
+                />
+              ) : (
+                <div className="text-center py-12 bg-gray-800/20 rounded-xl border-2 border-dashed border-gray-600/50">
+                  <GlobeAltIcon className="w-16 h-16 text-gray-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-300 mb-2">Belum Ada Media Sosial</h3>
+                  <p className="text-gray-400 text-sm">Tambahkan akun media sosial organisasi Anda</p>
+                </div>
+              )}
+              <MaterialButton
+                onClick={() => setFormData(p => ({ ...p, social_media_links: [...p.social_media_links, {id: uuidv4(), platform: '', url: ''}]}))}
+                icon={PlusIcon}
+                variant="secondary"
+              >
+                Tambah Media Sosial
+              </MaterialButton>
+            </div>
+          </Section>
+        );
+
+             case 'structure':
+         return (
+           <Section title="Struktur Organisasi" icon={UsersIcon}>
+             <div className="space-y-6">
+               {formData.organizational_structure.length > 0 ? (
+                 <SortableSection<OrganizationMember>
+                     items={formData.organizational_structure}
+                     onReorder={(reordered) => setFormData(p => ({ ...p, organizational_structure: reordered }))}
+                     renderItem={(item) => (
+                         <OrganizationMemberForm
+                             item={item}
+                             onUpdate={(id, field, value) => setFormData(p => ({ ...p, organizational_structure: p.organizational_structure.map(i => i.id === id ? { ...i, [field]: value } : i) }))}
+                             onRemove={(id) => setFormData(p => ({...p, organizational_structure: p.organizational_structure.filter(i => i.id !== id)}))}
+                         />
+                     )}
+                 />
+               ) : (
+                 <div className="text-center py-12 bg-gray-800/20 rounded-xl border-2 border-dashed border-gray-600/50">
+                   <UsersIcon className="w-16 h-16 text-gray-500 mx-auto mb-4" />
+                   <h3 className="text-lg font-medium text-gray-300 mb-2">Belum Ada Anggota</h3>
+                   <p className="text-gray-400 text-sm">Tambahkan anggota struktur organisasi Anda</p>
+                 </div>
+               )}
+               <MaterialButton
+                 onClick={() => setFormData(p => ({ ...p, organizational_structure: [...p.organizational_structure, {id: uuidv4(), position: '', name: ''}]}))}
+                 icon={PlusIcon}
+                 variant="secondary"
+               >
+                 Tambah Anggota
+               </MaterialButton>
+             </div>
+           </Section>
+         );
+
+      case 'vision':
+        return (
+          <Section title="Visi & Misi" icon={EyeIcon}>
+            <MaterialTextarea
+              label="Visi Organisasi"
+              value={formData.vision || ''}
+              onChange={(value) => setFormData(p => ({...p, vision: value}))}
+              placeholder="Jelaskan visi organisasi Anda untuk masa depan"
+              rows={4}
+            />
+            <MaterialTextarea
+              label="Misi Organisasi"
+              value={formData.mission || ''}
+              onChange={(value) => setFormData(p => ({...p, mission: value}))}
+              placeholder="Jelaskan misi dan tujuan organisasi Anda"
+              rows={6}
+            />
+          </Section>
+        );
+
+
+
+      case 'partnerships':
+        return (
+          <Section title="Kemitraan" icon={BriefcaseIcon}>
+            <div className="space-y-6">
+              <div>
+                <div className="flex items-center gap-3 mb-4"><AcademicCapIcon className="w-5 h-5 text-gray-300" /><h4 className="text-lg font-medium text-gray-300">Lembaga Pendidikan, Pemerintah, & Swasta</h4></div>
+                <SortableSection<PartnershipItem>
+                    items={educationPartners}
+                    onReorder={(reordered) => setFormData(p => ({ ...p, partnerships: [...reordered, ...industryPartners] }))}
+                    renderItem={(item) => (
+                        <PartnershipItemForm item={item} onUpdate={(id, field, value) => setFormData(p => ({ ...p, partnerships: p.partnerships.map(i => i.id === id ? { ...i, [field]: value } : i) }))} onRemove={(id) => setFormData(p => ({ ...p, partnerships: p.partnerships.filter(i => i.id !== id) }))} />
+                    )} />
+                <button type="button" onClick={() => setFormData(p => ({ ...p, partnerships: [...p.partnerships, { id: uuidv4(), category: 'education_government', name: '', logo_url: null }] }))} className="secondary-button flex items-center gap-2 mt-4"><PlusIcon className="w-4 h-4" /> Tambah Mitra Pendidikan/Pemerintah</button>
+              </div>
+              <div>
+                <div className="flex items-center gap-3 mb-4"><BriefcaseIcon className="w-5 h-5 text-gray-300" /><h4 className="text-lg font-medium text-gray-300">Mitra Industri</h4></div>
+                <SortableSection<PartnershipItem>
+                    items={industryPartners}
+                    onReorder={(reordered) => setFormData(p => ({ ...p, partnerships: [...educationPartners, ...reordered] }))}
+                    renderItem={(item) => (
+                        <PartnershipItemForm item={item} onUpdate={(id, field, value) => setFormData(p => ({ ...p, partnerships: p.partnerships.map(i => i.id === id ? { ...i, [field]: value } : i) }))} onRemove={(id) => setFormData(p => ({ ...p, partnerships: p.partnerships.filter(i => i.id !== id) }))} />
+                    )} />
+                <button type="button" onClick={() => setFormData(p => ({ ...p, partnerships: [...p.partnerships, { id: uuidv4(), category: 'industry', name: '', logo_url: null }] }))} className="secondary-button flex items-center gap-2 mt-4"><PlusIcon className="w-4 h-4" /> Tambah Mitra Industri</button>
+              </div>
+            </div>
+          </Section>
+        );
+
+      case 'achievements':
+        return (
+          <Section title="Penghargaan & Prestasi" icon={TrophyIcon}>
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 mb-6 p-4 bg-gradient-to-r from-amber-500/10 to-yellow-600/10 rounded-xl border border-amber-500/20">
+                <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-yellow-600 rounded-xl flex items-center justify-center">
+                  <TrophyIcon className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h4 className="text-lg font-semibold text-amber-300">Kelola Penghargaan</h4>
+                  <p className="text-amber-200/70 text-sm">Tambahkan dan kelola penghargaan yang telah diraih organisasi</p>
+                </div>
+              </div>
+              
+              {formData.achievements.length > 0 ? (
+                <SortableSection<Achievement>
+                  items={formData.achievements}
+                  onReorder={(reordered) => setFormData(p => ({ ...p, achievements: reordered }))}
+                  renderItem={(item) => (
+                    <AchievementItemForm 
+                      item={item} 
+                      onUpdate={(id, field, value) => setFormData(p => ({ 
+                        ...p, 
+                        achievements: p.achievements.map(i => i.id === id ? { ...i, [field]: value } : i) 
+                      }))} 
+                      onRemove={(id) => setFormData(p => ({ 
+                        ...p, 
+                        achievements: p.achievements.filter(i => i.id !== id) 
+                      }))} 
+                    />
+                  )}
+                />
+              ) : (
+                <div className="text-center py-12 bg-gradient-to-br from-amber-500/5 to-yellow-600/5 rounded-xl border-2 border-dashed border-amber-500/30">
+                  <TrophyIcon className="w-16 h-16 text-amber-400/50 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-amber-300/80 mb-2">Belum Ada Penghargaan</h3>
+                  <p className="text-amber-400/60 text-sm">Tambahkan penghargaan pertama organisasi Anda</p>
+                </div>
+              )}
+              
+              <button 
+                type="button" 
+                onClick={() => setFormData(p => ({ 
+                  ...p, 
+                  achievements: [...p.achievements, { 
+                    id: uuidv4(), 
+                    title: '', 
+                    issuer: '', 
+                    year: new Date().getFullYear(), 
+                    image_url: null 
+                  }] 
+                }))} 
+                className="w-full bg-gradient-to-r from-amber-500/20 to-yellow-600/20 border-2 border-dashed border-amber-500/40 text-amber-300 hover:from-amber-500/30 hover:to-yellow-600/30 hover:border-amber-400/60 hover:text-amber-200 transition-all rounded-xl py-4 px-6 flex items-center justify-center gap-3 font-medium group"
+              >
+                <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-yellow-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <PlusIcon className="w-4 h-4 text-white" />
+                </div>
+                Tambah Penghargaan Baru
+              </button>
+            </div>
+          </Section>
+        );
+
+      case 'events':
+        return (
+          <Section title="Event Internasional" icon={GlobeAltIcon}>
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 mb-6 p-4 bg-gradient-to-r from-blue-500/10 to-indigo-600/10 rounded-xl border border-blue-500/20">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
+                  <GlobeAltIcon className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h4 className="text-lg font-semibold text-blue-300">Kelola Event Internasional</h4>
+                  <p className="text-blue-200/70 text-sm">Tambahkan dan kelola event internasional yang diikuti organisasi</p>
+                </div>
+              </div>
+              
+              {formData.international_events.length > 0 ? (
+                <SortableSection<InternationalEvent>
+                  items={formData.international_events}
+                  onReorder={(reordered) => setFormData(p => ({ ...p, international_events: reordered }))}
+                  renderItem={(item) => (
+                    <InternationalEventItemForm 
+                      item={item} 
+                      onUpdate={(id, field, value) => setFormData(p => ({ 
+                        ...p, 
+                        international_events: p.international_events.map(i => i.id === id ? { ...i, [field]: value } : i) 
+                      }))} 
+                      onRemove={(id) => setFormData(p => ({ 
+                        ...p, 
+                        international_events: p.international_events.filter(i => i.id !== id) 
+                      }))} 
+                    />
+                  )}
+                />
+              ) : (
+                <div className="text-center py-12 bg-gradient-to-br from-blue-500/5 to-indigo-600/5 rounded-xl border-2 border-dashed border-blue-500/30">
+                  <GlobeAltIcon className="w-16 h-16 text-blue-400/50 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-blue-300/80 mb-2">Belum Ada Event Internasional</h3>
+                  <p className="text-blue-400/60 text-sm">Tambahkan event internasional pertama organisasi Anda</p>
+                </div>
+              )}
+              
+              <button 
+                type="button" 
+                onClick={() => setFormData(p => ({ 
+                  ...p, 
+                  international_events: [...p.international_events, { 
+                    id: uuidv4(), 
+                    country: '', 
+                    country_code: '',
+                    image_url: null 
+                  }] 
+                }))} 
+                className="w-full bg-gradient-to-r from-blue-500/20 to-indigo-600/20 border-2 border-dashed border-blue-500/40 text-blue-300 hover:from-blue-500/30 hover:to-indigo-600/30 hover:border-blue-400/60 hover:text-blue-200 transition-all rounded-xl py-4 px-6 flex items-center justify-center gap-3 font-medium group"
+              >
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <PlusIcon className="w-4 h-4 text-white" />
+                </div>
+                Tambah Event Internasional Baru
+              </button>
+            </div>
+          </Section>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  // If activeSection is provided, render only that section
+  if (activeSection) {
+    return (
+      <Tooltip.Provider delayDuration={100}>
+        <Form.Root onSubmit={handleSubmit} className="space-y-6">
+          {renderSection(activeSection)}
+          
+          <div className="flex justify-end pt-8 border-t border-gray-700/30">
+            <Form.Submit asChild>
+              <button 
+                type="submit" 
+                disabled={isSaving} 
+                className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-8 py-4 rounded-xl font-medium hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 material-button ripple"
+              >
+                {isSaving ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Menyimpan Perubahan...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Simpan Perubahan
+                  </>
+                )}
+              </button>
+            </Form.Submit>
+          </div>
+        </Form.Root>
+      </Tooltip.Provider>
+    );
+  }
+
+  // Original full form rendering (for backward compatibility)
   return (
     <Tooltip.Provider delayDuration={100}>
       <Form.Root onSubmit={handleSubmit} className="space-y-8">

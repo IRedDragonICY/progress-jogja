@@ -11,7 +11,7 @@ import {
 import type { UserWithProfile } from "@/types/supabase";
 import type { Product, ProductType, ProductDraft, OrganizationProfileData, StorageUsageData } from "@/types/supabase";
 import AdminProductForm from "@/components/AdminProductForm";
-import { AdminTabs, type AdminTab } from "@/components/admin/AdminTabs";
+import { AdminSidebar, type AdminTab } from "@/components/admin/AdminSidebar";
 import { DashboardHome } from "@/components/admin/DashboardHome";
 import { ProductsTab } from "@/components/admin/ProductsTab";
 import { ProfileTab } from "@/components/admin/ProfileTab";
@@ -20,13 +20,34 @@ import * as Dialog from '@radix-ui/react-dialog';
 import * as AlertDialog from '@radix-ui/react-alert-dialog';
 import * as Toast from '@radix-ui/react-toast';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
-import { XMarkIcon, DocumentTextIcon, PencilIcon, TrashIcon, ArrowRightIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, DocumentTextIcon, PencilIcon, TrashIcon, ArrowRightIcon, ExclamationTriangleIcon, HomeIcon, ArrowLeftIcon, Bars3Icon } from '@heroicons/react/24/outline';
 
 export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<UserWithProfile | null>(null);
 
   const [activeTab, setActiveTab] = useState<AdminTab>('home');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  
+  // Set initial sidebar state based on screen size
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 1024) { // lg breakpoint
+        setSidebarCollapsed(true);
+      } else {
+        setSidebarCollapsed(false);
+      }
+    };
+    
+    // Set initial state
+    handleResize();
+    
+    // Add event listener
+    window.addEventListener('resize', handleResize);
+    
+    // Cleanup
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [products, setProducts] = useState<Product[]>([]);
   const [productTypes, setProductTypes] = useState<ProductType[]>([]);
   const [userDrafts, setUserDrafts] = useState<ProductDraft[]>([]);
@@ -89,7 +110,20 @@ export default function AdminPage() {
   const handleDeleteAllUserDraftsAction = async () => { if (!userProfile) return showToast("Kesalahan otentikasi.", 'error'); setIsProcessing(true); try { await deleteAllUserDrafts(userProfile.user.id); if (showProductFormDialog && userDrafts.some(d => d.id === activeDraftIdForForm)) { setShowProductFormDialog(false); setActiveDraftIdForForm(undefined); setFormInitialData(undefined); } setUserDrafts([]); showToast('Semua draf berhasil dihapus!'); } catch (error: unknown) { showToast(`Gagal menghapus semua draf: ${(error as Error).message}`, 'error'); } finally { setIsProcessing(false); }};
   const handleFormCancel = () => { setShowProductFormDialog(false); setActiveDraftIdForForm(undefined); setFormInitialData(undefined); };
   const handleProfileSave = async (data: OrganizationProfileData) => { setIsProfileSaving(true); try { const updatedProfile = await upsertOrganizationProfile(data); setOrganizationProfile(updatedProfile); showToast('Profil organisasi berhasil disimpan!'); } catch (error: unknown) { showToast(`Gagal menyimpan profil: ${(error as Error).message}`, 'error'); } finally { setIsProfileSaving(false); }};
-  const handleTabChange = (tab: AdminTab) => { setActiveTab(tab); if (showProductFormDialog && tab !== 'products' && tab !== 'home') { setShowProductFormDialog(false); setActiveDraftIdForForm(undefined); setFormInitialData(undefined); }};
+  const handleTabChange = (tab: AdminTab) => { 
+    setActiveTab(tab); 
+    
+    // Auto-close sidebar on mobile after navigation
+    if (window.innerWidth < 1024) {
+      setSidebarCollapsed(true);
+    }
+    
+    if (showProductFormDialog && tab !== 'products' && tab !== 'home') { 
+      setShowProductFormDialog(false); 
+      setActiveDraftIdForForm(undefined); 
+      setFormInitialData(undefined); 
+    }
+  };
   const handleSetActiveTab = (tab: string) => { setActiveTab(tab as AdminTab); };
   const handleCreateNewProduct = () => { openFormForNewProduct().catch(console.error); };
 
@@ -98,23 +132,82 @@ export default function AdminPage() {
 
   if (loading) { return (<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800"><div className="text-center"><div className="animate-spin rounded-full h-20 w-20 border-b-2 border-red-500 mx-auto mb-6"></div><h1 className="text-2xl font-bold text-white mb-2">Memuat Dasbor</h1><p className="text-slate-400">Mempersiapkan panel admin Anda...</p></div></div>); }
 
+  const renderMainContent = () => {
+    switch (activeTab) {
+      case 'home':
+        return <DashboardHome products={products} productTypes={productTypes} userDrafts={userDrafts} storageUsage={storageUsage} setShowDraftsDialog={setShowDraftsDialog} onCreateNewProduct={handleCreateNewProduct} onEditDraft={openFormToEditExistingDraft} onSetActiveTab={handleSetActiveTab} isProcessing={isProcessing}/>;
+      case 'products':
+        return <ProductsTab products={filteredProducts} userDrafts={userDrafts} setShowDraftsDialog={setShowDraftsDialog} onCreateNewProduct={handleCreateNewProduct} onEditProduct={openFormToEditMasterProduct} onDeleteProduct={handleDeleteMasterProduct} onTogglePublish={handleTogglePublish} isProcessing={isProcessing} isDataLoading={isDataLoading} productTypes={productTypes} onAddType={handleAddProductType} onDeleteType={handleDeleteProductType} onUpdateType={handleUpdateProductType} searchTerm={searchTerm} onSearchChange={setSearchTerm}/>;
+      case 'transactions':
+        return <TransactionsTab />;
+      case 'profile':
+        return <ProfileTab organizationProfile={organizationProfile} onProfileSave={handleProfileSave} isProfileSaving={isProfileSaving} isDataLoading={isDataLoading}/>;
+      default:
+        return (
+          <div className="p-8 text-center">
+            <div className="text-slate-400 mb-4">
+              <h2 className="text-2xl font-bold mb-2">Page Not Found</h2>
+              <p>The requested page could not be found.</p>
+            </div>
+            <button 
+              onClick={() => setActiveTab('home')}
+              className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+            >
+              Go to Dashboard
+            </button>
+          </div>
+        );
+    }
+  };
+
   return (
     <Toast.Provider swipeDirection="right">
       <Dialog.Root open={showDraftsDialog} onOpenChange={setShowDraftsDialog}>
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800 text-gray-100">
-          <div className="container mx-auto px-4 py-6 max-w-7xl">
-            <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-6">
-              <div className="space-y-2"><h1 className="text-4xl font-bold bg-gradient-to-r from-red-400 via-red-500 to-red-600 bg-clip-text text-transparent">Progress Jogja</h1><p className="text-slate-400 text-lg">Dasbor Admin</p><p className="text-slate-500 text-sm">Kelola produk, transaksi, dan profil organisasi</p></div>
-              <div className="flex items-center gap-4"><div className="hidden md:block text-right"><p className="text-sm text-slate-400">Masuk sebagai</p><p className="text-white font-medium">{userProfile?.user?.email}</p></div><AlertDialog.Root><AlertDialog.Trigger asChild><button className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold rounded-2xl transition-all duration-300 shadow-lg shadow-red-500/25 hover:shadow-red-500/40 hover:-translate-y-0.5">Keluar</button></AlertDialog.Trigger><AlertDialog.Portal><AlertDialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" /><AlertDialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-800/95 backdrop-blur-xl rounded-3xl p-8 w-full max-w-md z-50 border border-slate-700/50 shadow-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"><AlertDialog.Title className="text-2xl font-bold text-white mb-3">Konfirmasi Keluar</AlertDialog.Title><AlertDialog.Description className="text-slate-400 mb-8 text-lg">Apakah Anda yakin ingin keluar dari dasbor admin?</AlertDialog.Description><div className="flex gap-4 justify-end"><AlertDialog.Cancel asChild><button className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-xl transition-all duration-200">Batal</button></AlertDialog.Cancel><AlertDialog.Action asChild><button onClick={handleLogout} className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-medium rounded-xl transition-all duration-200">Keluar</button></AlertDialog.Action></div></AlertDialog.Content></AlertDialog.Portal></AlertDialog.Root></div>
-            </header>
-            {(isProcessing || isDataLoading || isProfileSaving) && (<div className="mb-6 p-6 bg-gradient-to-r from-red-900/40 to-red-800/40 backdrop-blur-xl border border-red-500/30 rounded-2xl shadow-lg"><div className="flex items-center justify-center gap-4"><LoadingSpinner /><span className="text-red-200 font-semibold text-lg">{isDataLoading ? 'Mengambil data...' : isProfileSaving ? 'Menyimpan profil...' : 'Memproses...'}</span></div></div>)}
-            {networkError && (<div className="mb-6 p-6 bg-gradient-to-r from-red-900/40 to-red-800/40 backdrop-blur-xl border border-red-500/30 rounded-2xl shadow-lg"><div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></div><span className="text-red-200 font-medium">{networkError}</span></div><button onClick={() => loadAllAdminData(userProfile!.user.id, true).catch(console.error)} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition-all duration-200">Coba Lagi</button></div></div>)}
-            <AdminTabs activeTab={activeTab} onTabChange={handleTabChange}>
-              <DashboardHome products={products} productTypes={productTypes} userDrafts={userDrafts} storageUsage={storageUsage} setShowDraftsDialog={setShowDraftsDialog} onCreateNewProduct={handleCreateNewProduct} onEditDraft={openFormToEditExistingDraft} onSetActiveTab={handleSetActiveTab} isProcessing={isProcessing}/>
-              <ProductsTab products={filteredProducts} userDrafts={userDrafts} setShowDraftsDialog={setShowDraftsDialog} onCreateNewProduct={handleCreateNewProduct} onEditProduct={openFormToEditMasterProduct} onDeleteProduct={handleDeleteMasterProduct} onTogglePublish={handleTogglePublish} isProcessing={isProcessing} isDataLoading={isDataLoading} productTypes={productTypes} onAddType={handleAddProductType} onDeleteType={handleDeleteProductType} onUpdateType={handleUpdateProductType} searchTerm={searchTerm} onSearchChange={setSearchTerm}/>
-              <TransactionsTab />
-              <ProfileTab organizationProfile={organizationProfile} onProfileSave={handleProfileSave} isProfileSaving={isProfileSaving} isDataLoading={isDataLoading}/>
-            </AdminTabs>
+          {/* Sidebar */}
+          <AdminSidebar 
+            activeTab={activeTab} 
+            onTabChange={handleTabChange}
+            isCollapsed={sidebarCollapsed}
+            onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+            userProfile={userProfile ? {
+              name: userProfile.user.email?.split('@')[0] || 'Admin',
+              email: userProfile.user.email || ''
+            } : undefined}
+            stats={{
+              totalProducts: products.length,
+              totalTransactions: 0, // This would come from actual transaction data
+              pendingDrafts: userDrafts.length
+            }}
+          />
+          
+          {/* Main Content */}
+          <div className={`transition-all duration-300 ${sidebarCollapsed ? 'ml-0 lg:ml-16' : 'ml-0 lg:ml-72'} min-h-screen`}>
+            <div className="container mx-auto px-4 py-6 max-w-7xl">
+              <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-6">
+                <div className="flex items-center gap-4 w-full lg:w-auto">
+                  <button
+                    onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                    className="lg:hidden p-2 hover:bg-slate-700/50 rounded-xl transition-colors"
+                  >
+                    {sidebarCollapsed ? (
+                      <Bars3Icon className="w-5 h-5 text-slate-400" />
+                    ) : (
+                      <XMarkIcon className="w-5 h-5 text-slate-400" />
+                    )}
+                  </button>
+                  <div className="space-y-2"><h1 className="text-4xl font-bold bg-gradient-to-r from-red-400 via-red-500 to-red-600 bg-clip-text text-transparent">Progress Jogja</h1><p className="text-slate-400 text-lg">Dasbor Admin</p><p className="text-slate-500 text-sm">Kelola produk, transaksi, dan profil organisasi</p></div>
+                </div>
+                <div className="flex items-center gap-4"><div className="hidden md:block text-right"><p className="text-sm text-slate-400">Masuk sebagai</p><p className="text-white font-medium">{userProfile?.user?.email}</p></div><button onClick={() => window.open('/', '_blank')} className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold rounded-2xl transition-all duration-300 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:-translate-y-0.5 flex items-center gap-2.5"><HomeIcon className="w-5 h-5" /><span>Halaman Utama</span></button><AlertDialog.Root><AlertDialog.Trigger asChild><button className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold rounded-2xl transition-all duration-300 shadow-lg shadow-red-500/25 hover:shadow-red-500/40 hover:-translate-y-0.5">Keluar</button></AlertDialog.Trigger><AlertDialog.Portal><AlertDialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" /><AlertDialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-800/95 backdrop-blur-xl rounded-3xl p-8 w-full max-w-md z-50 border border-slate-700/50 shadow-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"><AlertDialog.Title className="text-2xl font-bold text-white mb-3">Konfirmasi Keluar</AlertDialog.Title><AlertDialog.Description className="text-slate-400 mb-8 text-lg">Apakah Anda yakin ingin keluar dari dasbor admin?</AlertDialog.Description><div className="flex gap-4 justify-end"><AlertDialog.Cancel asChild><button className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-xl transition-all duration-200">Batal</button></AlertDialog.Cancel><AlertDialog.Action asChild><button onClick={handleLogout} className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-medium rounded-xl transition-all duration-200">Keluar</button></AlertDialog.Action></div></AlertDialog.Content></AlertDialog.Portal></AlertDialog.Root></div>
+              </header>
+              {(isProcessing || isDataLoading || isProfileSaving) && (<div className="mb-6 p-6 bg-gradient-to-r from-red-900/40 to-red-800/40 backdrop-blur-xl border border-red-500/30 rounded-2xl shadow-lg"><div className="flex items-center justify-center gap-4"><LoadingSpinner /><span className="text-red-200 font-semibold text-lg">{isDataLoading ? 'Mengambil data...' : isProfileSaving ? 'Menyimpan profil...' : 'Memproses...'}</span></div></div>)}
+              {networkError && (<div className="mb-6 p-6 bg-gradient-to-r from-red-900/40 to-red-800/40 backdrop-blur-xl border border-red-500/30 rounded-2xl shadow-lg"><div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></div><span className="text-red-200 font-medium">{networkError}</span></div><button onClick={() => loadAllAdminData(userProfile!.user.id, true).catch(console.error)} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition-all duration-200">Coba Lagi</button></div></div>)}
+              
+              {/* Main Content Area */}
+              <div className="bg-slate-800/40 backdrop-blur-xl rounded-3xl border border-slate-700/50 shadow-2xl shadow-slate-900/50 overflow-hidden">
+                {renderMainContent()}
+              </div>
+            </div>
           </div>
           <Dialog.Root open={showProductFormDialog} onOpenChange={setShowProductFormDialog}><Dialog.Portal><Dialog.Overlay className="fixed inset-0 bg-black/70 backdrop-blur-md z-40 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" /><Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-[90vh] max-h-[90vh] bg-transparent border-none shadow-none z-50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] p-0"><VisuallyHidden><Dialog.Title>Editor Produk</Dialog.Title></VisuallyHidden>{activeDraftIdForForm && formInitialData !== undefined && (<AdminProductForm key={activeDraftIdForForm} activeDraftId={activeDraftIdForForm} initialDraftData={formInitialData} productTypes={productTypes} onSave={handleFormSave} onPublish={handleFormPublish} onCancel={handleFormCancel} isExternallySaving={isProcessing}/>)}</Dialog.Content></Dialog.Portal></Dialog.Root>
           <Dialog.Portal><Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" /><Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-5xl max-h-[85vh] bg-slate-800/95 backdrop-blur-xl rounded-3xl border border-slate-700/50 shadow-2xl z-50 overflow-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]"><div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-8 border-b border-slate-700/50 bg-gradient-to-r from-slate-800/50 to-slate-700/50 gap-4"><div className="flex-1"><Dialog.Title className="text-2xl font-bold text-white mb-1">Draf Saya</Dialog.Title><p className="text-slate-400">Kelola draf pekerjaan Anda</p></div><div className="flex flex-wrap gap-3">{userDrafts.length > 0 && (<AlertDialog.Root><AlertDialog.Trigger asChild><button disabled={isProcessing} className="px-4 py-2 bg-red-700 hover:bg-red-800 text-white text-sm font-medium rounded-xl transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"><TrashIcon className="w-4 h-4" />Hapus Semua</button></AlertDialog.Trigger><AlertDialog.Portal><AlertDialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" /><AlertDialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-800 rounded-2xl p-8 w-full max-w-md z-50 border border-slate-700 shadow-2xl"><AlertDialog.Title className="text-xl font-semibold text-white mb-2 flex items-center gap-2"><ExclamationTriangleIcon className="w-6 h-6 text-red-400"/>Konfirmasi Penghapusan</AlertDialog.Title><AlertDialog.Description className="text-slate-400 mb-6">Apakah Anda yakin ingin menghapus SEMUA draf? Tindakan ini tidak dapat dibatalkan.</AlertDialog.Description><div className="flex gap-3 justify-end"><AlertDialog.Cancel asChild><button className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition-colors">Batal</button></AlertDialog.Cancel><AlertDialog.Action asChild><button onClick={handleDeleteAllUserDraftsAction} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-colors">Hapus Semua Draf</button></AlertDialog.Action></div></AlertDialog.Content></AlertDialog.Portal></AlertDialog.Root>)}<button onClick={handleCreateNewProduct} disabled={isProcessing} className="px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-sm font-medium rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">Buat Draf Baru</button></div><Dialog.Close asChild><button className="p-2.5 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-xl transition-all duration-200"><XMarkIcon className="w-6 h-6" /></button></Dialog.Close></div><div className="p-8 overflow-y-auto max-h-[calc(85vh-100px)]">{!userDrafts.length ? (<div className="text-center py-16"><div className="w-20 h-20 bg-gradient-to-br from-slate-700 to-slate-800 rounded-3xl flex items-center justify-center mx-auto mb-6"><DocumentTextIcon className="w-10 h-10 text-slate-400" /></div><h3 className="text-xl font-semibold text-slate-300 mb-2">Belum ada draf</h3><p className="text-slate-500 mb-6">Mulai buat draf produk pertama Anda</p></div>) : (<div className="grid gap-4">{userDrafts.map(draft => (<div key={draft.id} className="group bg-slate-700/30 backdrop-blur-sm rounded-2xl p-6 border border-slate-600/30 hover:border-slate-500/50 transition-all duration-300 hover:bg-slate-700/50"><div className="flex flex-col lg:flex-row justify-between gap-4"><div className="flex-1 space-y-3"><h4 className="text-lg font-semibold text-white group-hover:text-red-300 transition-colors">{draft.name || "[Draf Tanpa Judul]"}</h4><div className="space-y-1.5"><p className="text-sm text-slate-400">{draft.product_id ? `Mengedit Produk ID: ...${draft.product_id.slice(-6)}` : "Draf Produk Baru"}</p><p className="text-sm text-slate-400">Terakhir disimpan: {new Date(draft.updated_at!).toLocaleString('id-ID')}</p></div></div><div className="flex flex-wrap gap-2 items-start"><button onClick={() => openFormToEditExistingDraft(draft)} className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white text-sm font-medium rounded-xl transition-all duration-200 flex items-center gap-2"><PencilIcon className="w-4 h-4" />Ubah</button><AlertDialog.Root><AlertDialog.Trigger asChild><button className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-xl transition-all duration-200 flex items-center gap-2"><ArrowRightIcon className="w-4 h-4" />Terbitkan</button></AlertDialog.Trigger><AlertDialog.Portal><AlertDialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" /><AlertDialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-800 rounded-2xl p-8 w-full max-w-md z-50 border border-slate-700 shadow-2xl"><AlertDialog.Title className="text-xl font-semibold text-white mb-2">Terbitkan Draf</AlertDialog.Title><AlertDialog.Description className="text-slate-400 mb-6">Apakah Anda yakin ingin menerbitkan "{draft.name || 'draf ini'}"?</AlertDialog.Description><div className="flex gap-3 justify-end"><AlertDialog.Cancel asChild><button className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition-colors">Batal</button></AlertDialog.Cancel><AlertDialog.Action asChild><button onClick={() => handleFormPublish(draft.id)} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors">Terbitkan</button></AlertDialog.Action></div></AlertDialog.Content></AlertDialog.Portal></AlertDialog.Root><AlertDialog.Root><AlertDialog.Trigger asChild><button className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-xl transition-all duration-200 flex items-center gap-2"><TrashIcon className="w-4 h-4" />Hapus</button></AlertDialog.Trigger><AlertDialog.Portal><AlertDialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" /><AlertDialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-800 rounded-2xl p-8 w-full max-w-md z-50 border border-slate-700 shadow-2xl"><AlertDialog.Title className="text-xl font-semibold text-white mb-2">Hapus Draf</AlertDialog.Title><AlertDialog.Description className="text-slate-400 mb-6">Apakah Anda yakin ingin menghapus "{draft.name || 'draf ini'}"?</AlertDialog.Description><div className="flex gap-3 justify-end"><AlertDialog.Cancel asChild><button className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition-colors">Batal</button></AlertDialog.Cancel><AlertDialog.Action asChild><button onClick={() => handleDeleteUserDraft(draft.id)} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-colors">Hapus</button></AlertDialog.Action></div></AlertDialog.Content></AlertDialog.Portal></AlertDialog.Root></div></div></div>))}</div>)}</div></Dialog.Content></Dialog.Portal>
