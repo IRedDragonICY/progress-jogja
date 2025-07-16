@@ -1,16 +1,17 @@
 'use client';
 
-import React, { useState, useCallback, memo } from 'react';
+import React, { useState, useCallback, memo, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { supabase, verifyAndCleanSession, clearInvalidCookies } from '@/lib/supabase';
 import * as Form from '@radix-ui/react-form';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Separator from '@radix-ui/react-separator';
 import {
   XMarkIcon, EyeIcon, EyeSlashIcon, EnvelopeIcon, LockClosedIcon,
-  ShieldCheckIcon, ExclamationTriangleIcon, CheckCircleIcon
+  ShieldCheckIcon, ExclamationTriangleIcon, CheckCircleIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline';
 
 const AlertMessage = ({ type, message }: { type: 'idle' | 'success' | 'error'; message: string; }) => {
@@ -26,6 +27,7 @@ const AlertMessage = ({ type, message }: { type: 'idle' | 'success' | 'error'; m
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -35,19 +37,63 @@ export default function LoginPage() {
   const [forgotEmail, setForgotEmail] = useState('');
   const [isSendingReset, setIsSendingReset] = useState(false);
   const [resetStatus, setResetStatus] = useState<{ type: 'idle' | 'success' | 'error'; message: string }>({ type: 'idle', message: '' });
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
 
   const handleLogin = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); setIsSubmitting(true); setStatus({ type: 'idle', message: '' });
+    e.preventDefault(); 
+    setIsSubmitting(true); 
+    setStatus({ type: 'idle', message: '' });
+    
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-      if (error) { setStatus({ type: 'error', message: `Gagal masuk: ${error.message}` });
+      // Bersihkan cookies yang invalid sebelum login
+      clearInvalidCookies();
+      
+      const { data, error } = await supabase.auth.signInWithPassword({ 
+        email: email.trim(), 
+        password 
+      });
+      
+      if (error) {
+        console.error('Login error:', error);
+        
+        let errorMessage = 'Gagal masuk';
+        
+        // Handle specific error cases
+        if (error.message.includes('Invalid login credentials')) {
+          errorMessage = 'Email atau password salah';
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = 'Email belum dikonfirmasi. Silakan periksa email Anda.';
+        } else if (error.message.includes('invalid') || error.message.includes('expired')) {
+          errorMessage = 'Session telah berakhir. Silakan coba lagi.';
+          clearInvalidCookies();
+        } else {
+          errorMessage = `Gagal masuk: ${error.message}`;
+        }
+        
+        setStatus({ type: 'error', message: errorMessage });
       } else if (data.user) {
+        // Verifikasi session setelah login
+        const { user: verifiedUser, error: verifyError } = await verifyAndCleanSession();
+        
+        if (verifyError) {
+          setStatus({ type: 'error', message: 'Login berhasil tetapi session tidak valid. Silakan coba lagi.' });
+          return;
+        }
+        
         setStatus({ type: 'success', message: 'Berhasil masuk! Mengalihkan...' });
-        router.push('/');
+        
+        // Redirect ke halaman yang diminta atau home
+        const redirectTo = searchParams.get('redirect_to') || '/';
+        router.push(redirectTo);
       }
-    } catch (err) { setStatus({ type: 'error', message: `Terjadi kesalahan: ${(err as Error).message}` });
-    } finally { setIsSubmitting(false); }
-  }, [email, password, router]);
+    } catch (err) {
+      console.error('Unexpected login error:', err);
+      clearInvalidCookies();
+      setStatus({ type: 'error', message: `Terjadi kesalahan: ${(err as Error).message}` });
+    } finally { 
+      setIsSubmitting(false); 
+    }
+  }, [email, password, router, searchParams]);
 
   const handleForgotPassword = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); setIsSendingReset(true); setResetStatus({ type: 'idle', message: '' });
@@ -61,6 +107,63 @@ export default function LoginPage() {
     } catch (err) { setResetStatus({ type: 'error', message: `Kesalahan tak terduga: ${(err as Error).message}` });
     } finally { setIsSendingReset(false); }
   }, [forgotEmail]);
+
+  // Check for URL parameters and existing session
+  useEffect(() => {
+    const checkSessionAndParams = async () => {
+      try {
+        // Check for URL parameters
+        const errorParam = searchParams.get('error');
+        const messageParam = searchParams.get('message');
+        
+        if (errorParam || messageParam) {
+          let message = messageParam || 'Terjadi kesalahan';
+          
+          if (errorParam === 'auth_error') {
+            message = 'Gagal konfirmasi email. Silakan coba lagi.';
+          } else if (errorParam === 'unexpected_error') {
+            message = 'Terjadi kesalahan tak terduga. Silakan coba masuk lagi.';
+          }
+          
+          setStatus({ 
+            type: errorParam ? 'error' : 'success', 
+            message 
+          });
+        }
+        
+        // Check existing session
+        const { user, error } = await verifyAndCleanSession();
+        
+        if (user && !error) {
+          // User sudah login, redirect ke home atau halaman yang diminta
+          const redirectTo = searchParams.get('redirect_to') || '/';
+          router.replace(redirectTo);
+        }
+      } catch (error) {
+        console.error('Error checking session:', error);
+        // Clear potentially invalid cookies
+        clearInvalidCookies();
+      } finally {
+        setIsCheckingSession(false);
+      }
+    };
+
+    checkSessionAndParams();
+  }, [searchParams, router]);
+
+  // Show loading state while checking session
+  if (isCheckingSession) {
+    return (
+      <div className="relative w-full max-w-md z-10">
+        <div className="bg-gray-900/80 backdrop-blur-md rounded-3xl border border-gray-700/50 shadow-2xl shadow-black/50 p-8">
+          <div className="flex items-center justify-center space-x-2">
+            <ArrowPathIcon className="w-5 h-5 text-red-400 animate-spin" />
+            <span className="text-white">Memeriksa session...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative w-full max-w-md z-10">

@@ -20,6 +20,99 @@ export const signOut = async () => {
     window.location.href = '/';
 };
 
+/**
+ * Utility function untuk membersihkan cookies yang invalid atau corrupt
+ */
+export const clearInvalidCookies = () => {
+    // Ambil semua cookies
+    const cookies = document.cookie.split(';');
+    
+    // Hapus semua cookies yang berkaitan dengan Supabase
+    cookies.forEach(cookie => {
+        const cookieName = cookie.split('=')[0].trim();
+        if (cookieName.startsWith('sb-')) {
+            // Hapus cookie dengan mengatur expires ke masa lalu
+            document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname}`;
+            document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+        }
+    });
+};
+
+/**
+ * Utility function untuk memverifikasi dan membersihkan session yang invalid
+ */
+export const verifyAndCleanSession = async () => {
+    try {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        
+        if (error) {
+            console.warn('Session verification failed:', error.message);
+            
+            // Jika error disebabkan oleh cookies yang invalid, bersihkan cookies
+            if (error.message.includes('invalid') || 
+                error.message.includes('expired') || 
+                error.message.includes('malformed') ||
+                error.message.includes('JWT')) {
+                
+                clearInvalidCookies();
+                
+                // Sign out untuk memastikan semua session dibersihkan
+                await supabase.auth.signOut();
+                
+                return { user: null, error: 'Session cleaned due to invalid cookies' };
+            }
+            
+            return { user: null, error: error.message };
+        }
+        
+        // Jika user valid, verifikasi email confirmation
+        if (user && !user.email_confirmed_at) {
+            return { user: null, error: 'Email not confirmed' };
+        }
+        
+        return { user, error: null };
+    } catch (error) {
+        console.error('Unexpected error during session verification:', error);
+        clearInvalidCookies();
+        await supabase.auth.signOut();
+        return { user: null, error: 'Session cleaned due to unexpected error' };
+    }
+};
+
+/**
+ * Utility function untuk recovery session yang bermasalah
+ */
+export const recoverSession = async () => {
+    try {
+        // Coba refresh session
+        const { data: { session }, error } = await supabase.auth.refreshSession();
+        
+        if (error || !session) {
+            console.warn('Session recovery failed, clearing cookies');
+            clearInvalidCookies();
+            await supabase.auth.signOut();
+            return false;
+        }
+        
+        // Verifikasi user setelah refresh
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        
+        if (userError || !user) {
+            console.warn('User verification failed after session refresh');
+            clearInvalidCookies();
+            await supabase.auth.signOut();
+            return false;
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('Session recovery failed:', error);
+        clearInvalidCookies();
+        await supabase.auth.signOut();
+        return false;
+    }
+};
+
 export const getUserWithProfile = async () => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;

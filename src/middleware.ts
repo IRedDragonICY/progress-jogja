@@ -1,7 +1,43 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+/**
+ * Utility function untuk membersihkan cookies yang invalid
+ */
+function clearInvalidCookies(response: NextResponse, request: NextRequest) {
+  // Ambil semua cookies yang ada
+  const cookies = request.cookies.getAll()
+  
+  // Hapus semua cookies yang berkaitan dengan Supabase
+  cookies.forEach(cookie => {
+    if (cookie.name.startsWith('sb-')) {
+      response.cookies.set({
+        name: cookie.name,
+        value: '',
+        expires: new Date(0),
+        path: '/',
+        domain: request.nextUrl.hostname,
+        secure: request.nextUrl.protocol === 'https:',
+        httpOnly: true,
+        sameSite: 'lax'
+      })
+    }
+  })
+}
+
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+
+  // Skip middleware untuk static files dan API routes yang tidak memerlukan auth
+  if (
+    pathname.startsWith('/_next/') ||
+    pathname.startsWith('/api/') ||
+    pathname.startsWith('/static/') ||
+    pathname.match(/\.(ico|png|jpg|jpeg|svg|css|js|woff|woff2|ttf|eot)$/)
+  ) {
+    return NextResponse.next()
+  }
+
   // Buat response kosong yang akan kita modifikasi
   const response = NextResponse.next({
     request: {
@@ -38,41 +74,77 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Langkah PENTING: Refresh session.
-  // Ini akan memperbarui cookie otentikasi jika diperlukan.
-  // Tanpa ini, API Route tidak akan mendapatkan session yang valid.
-  const { data: { user }, error } = await supabase.auth.getUser()
+  let user = null
+  let authError = null
 
-  // Bagian di bawah ini adalah untuk proteksi route (opsional tapi sangat direkomendasikan)
-  const { pathname } = request.nextUrl;
+  try {
+    // Coba ambil user dengan error handling yang robust
+    const { data: { user: currentUser }, error } = await supabase.auth.getUser()
+    
+    if (error) {
+      console.warn('Auth error in middleware:', error.message)
+      authError = error
+      
+      // Jika error disebabkan oleh cookies yang invalid, bersihkan cookies
+      if (error.message.includes('invalid') || error.message.includes('expired') || error.message.includes('malformed')) {
+        clearInvalidCookies(response, request)
+      }
+    } else {
+      user = currentUser
+    }
+  } catch (error) {
+    console.error('Unexpected error in middleware auth check:', error)
+    authError = error
+    clearInvalidCookies(response, request)
+  }
 
-  const authRoutes = ['/login', '/register'];
-  const protectedRoutes = ['/admin', '/profile', '/checkout']; // Tambahkan /checkout
+  const authRoutes = ['/login', '/register']
+  const protectedRoutes = ['/admin', '/profile', '/checkout']
 
-  // Jika user sudah login
-  if (user) {
+  // Jika user sudah login dan valid
+  if (user && !authError) {
     // dan mencoba mengakses halaman login/register, redirect ke home
     if (authRoutes.some(route => pathname.startsWith(route))) {
-      return NextResponse.redirect(new URL('/', request.url));
+      return NextResponse.redirect(new URL('/', request.url))
     }
 
-    // Jika user bukan admin dan mencoba mengakses /admin, redirect
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-    if (pathname.startsWith('/admin') && profile?.role !== 'admin') {
-      return NextResponse.redirect(new URL('/', request.url));
+    // Jika user mencoba mengakses /admin, cek role
+    if (pathname.startsWith('/admin')) {
+      try {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single()
+
+        if (profileError || profile?.role !== 'admin') {
+          console.warn('Admin access denied for user:', user.id)
+          return NextResponse.redirect(new URL('/', request.url))
+        }
+      } catch (error) {
+        console.error('Error checking admin role:', error)
+        return NextResponse.redirect(new URL('/', request.url))
+      }
     }
   }
-  // Jika user belum login
+  // Jika user belum login atau ada error auth
   else {
+    // Skip auth redirect untuk auth callback route
+    if (pathname.startsWith('/auth/callback')) {
+      return response
+    }
+
     // dan mencoba mengakses route yang dilindungi, redirect ke login
     if (protectedRoutes.some(route => pathname.startsWith(route))) {
-      const redirectUrl = new URL('/login', request.url);
-      redirectUrl.searchParams.set('redirect_to', pathname);
-      return NextResponse.redirect(redirectUrl);
+      const redirectUrl = new URL('/login', request.url)
+      redirectUrl.searchParams.set('redirect_to', pathname)
+      
+      // Jika ada error auth, tambahkan message
+      if (authError) {
+        redirectUrl.searchParams.set('message', 'Session expired. Please log in again.')
+      }
+      
+      return NextResponse.redirect(redirectUrl)
     }
   }
 

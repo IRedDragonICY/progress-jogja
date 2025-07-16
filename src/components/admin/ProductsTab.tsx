@@ -42,6 +42,7 @@ interface ProductsTabProps {
   onUpdateType: (id: string, name: string) => Promise<void>;
   searchTerm: string;
   onSearchChange: (term: string) => void;
+  activeSubMenu?: string;
 }
 
 const StatusBadge = ({ published }: { published: boolean }) => (
@@ -253,6 +254,7 @@ export function ProductsTab({
   onUpdateType,
   searchTerm,
   onSearchChange,
+  activeSubMenu,
 }: ProductsTabProps) {
   const [newTypeName, setNewTypeName] = useState('');
   const [isEditTypeDialogOpen, setIsEditTypeDialogOpen] = useState(false);
@@ -275,6 +277,19 @@ export function ProductsTab({
       endIndex: endIdx
     };
   }, [products, currentPage, itemsPerPage]);
+
+  // Sub-menu section header component
+  const SectionHeader = ({ icon: Icon, title, subtitle }: { icon: React.ElementType; title: string; subtitle: string }) => (
+    <div className="flex items-center gap-4 mb-6">
+      <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl flex items-center justify-center">
+        <Icon className="w-6 h-6 text-white" />
+      </div>
+      <div>
+        <h3 className="text-xl font-bold text-white">{title}</h3>
+        <p className="text-slate-400 text-sm">{subtitle}</p>
+      </div>
+    </div>
+  );
 
   // Reset to first page when search changes or items per page changes
   React.useEffect(() => {
@@ -315,6 +330,252 @@ export function ProductsTab({
     setEditingProductType(null);
     setEditedProductTypeName('');
   };
+
+  // Handle sub-menu rendering
+  const renderSubMenuContent = () => {
+    switch (activeSubMenu) {
+      case 'products-overview':
+        return (
+          <div className="p-8">
+            <SectionHeader 
+              icon={CubeIcon} 
+              title="Product Overview" 
+              subtitle="Ringkasan dan statistik produk"
+            />
+            <div className="bg-slate-800/40 backdrop-blur-xl rounded-3xl border border-slate-700/50 p-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-slate-700/50 rounded-2xl p-6">
+                  <h4 className="text-white font-semibold mb-2">Total Produk</h4>
+                  <p className="text-2xl font-bold text-blue-400">{products.length}</p>
+                </div>
+                <div className="bg-slate-700/50 rounded-2xl p-6">
+                  <h4 className="text-white font-semibold mb-2">Terpublikasi</h4>
+                  <p className="text-2xl font-bold text-green-400">{products.filter(p => p.is_published).length}</p>
+                </div>
+                <div className="bg-slate-700/50 rounded-2xl p-6">
+                  <h4 className="text-white font-semibold mb-2">Draft</h4>
+                  <p className="text-2xl font-bold text-amber-400">{userDrafts.length}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+        
+      case 'products-manage':
+        return (
+          <div className="p-8">
+            <SectionHeader 
+              icon={CubeIcon} 
+              title="Kelola Produk" 
+              subtitle="Daftar dan manajemen produk"
+            />
+            <div className="bg-slate-800/40 backdrop-blur-xl rounded-3xl border border-slate-700/50 p-6">
+              {/* Product management content - this will be the main product list */}
+              {renderMainProductContent()}
+            </div>
+          </div>
+        );
+        
+      case 'products-add':
+        return (
+          <div className="p-8">
+            <SectionHeader 
+              icon={PlusIcon} 
+              title="Tambah Produk" 
+              subtitle="Buat produk baru"
+            />
+            <div className="bg-slate-800/40 backdrop-blur-xl rounded-3xl border border-slate-700/50 p-6">
+              <button
+                onClick={onCreateNewProduct}
+                disabled={isProcessing}
+                className="w-full px-6 py-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold rounded-2xl transition-all duration-300 shadow-lg shadow-red-500/25 hover:shadow-red-500/40 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 border border-red-400/20"
+              >
+                <PlusIcon className="w-5 h-5" />
+                Buat Produk Baru
+              </button>
+            </div>
+          </div>
+        );
+        
+      case 'products-categories':
+        return (
+          <div className="p-8">
+            <SectionHeader 
+              icon={TagIcon} 
+              title="Kategori Produk" 
+              subtitle="Kelola kategori dan tipe produk"
+            />
+            <div className="bg-slate-800/40 backdrop-blur-xl rounded-3xl border border-slate-700/50 p-6">
+              {/* Category management content - this will be the product types section */}
+              {renderCategoryContent()}
+            </div>
+          </div>
+        );
+        
+      case 'products-drafts':
+        return (
+          <div className="p-8">
+            <SectionHeader 
+              icon={DocumentTextIcon} 
+              title="Draft Produk" 
+              subtitle="Produk yang belum dipublikasi"
+            />
+            <div className="bg-slate-800/40 backdrop-blur-xl rounded-3xl border border-slate-700/50 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-white font-semibold">Draft Tersedia ({userDrafts.length})</h4>
+                                 <button
+                   onClick={() => {/* Show drafts dialog logic */}}
+                   className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium transition-colors"
+                 >
+                   Lihat Semua Draft
+                 </button>
+              </div>
+              {userDrafts.length === 0 ? (
+                <p className="text-slate-400 text-center py-8">Tidak ada draft tersedia</p>
+              ) : (
+                <div className="space-y-2">
+                  {userDrafts.slice(0, 5).map((draft) => (
+                    <div key={draft.id} className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
+                      <span className="text-white">{draft.name || 'Draft Tanpa Nama'}</span>
+                      <span className="text-slate-400 text-sm">{new Date(draft.updated_at!).toLocaleDateString()}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+        
+      default:
+        return renderMainProductContent();
+    }
+  };
+
+  // Main product content (the original content)
+  const renderMainProductContent = () => (
+    <div className="p-8">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
+        <div>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent mb-2">
+            Manajemen Produk
+          </h2>
+          <p className="text-slate-400">Buat, sunting, dan kelola katalog produk Anda</p>
+        </div>
+
+        <div className="flex gap-3">
+          <Dialog.Trigger asChild>
+            <button
+                className="relative px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold rounded-2xl transition-all duration-300 shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:-translate-y-0.5 flex items-center gap-2.5 border border-amber-400/20">
+              <DocumentTextIcon className="w-5 h-5" />
+              <span>Draf</span>
+              {userDrafts.length > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
+                  {userDrafts.length}
+                </span>
+              )}
+            </button>
+          </Dialog.Trigger>
+
+          <button
+            onClick={onCreateNewProduct}
+            disabled={isProcessing}
+            className="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold rounded-2xl transition-all duration-300 shadow-lg shadow-red-500/25 hover:shadow-red-500/40 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2.5 border border-red-400/20"
+          >
+            <PlusIcon className="w-5 h-5" />
+            Tambah Produk
+          </button>
+        </div>
+      </div>
+
+      {/* Search and Filter Section */}
+      <div className="bg-slate-800/40 backdrop-blur-xl rounded-3xl border border-slate-700/50 p-6 mb-8">
+        <div className="flex flex-col md:flex-row gap-4 items-center">
+          <div className="relative flex-1">
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Cari produk berdasarkan nama atau deskripsi..."
+              value={searchTerm}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
+            />
+          </div>
+          {searchTerm && (
+            <button
+              onClick={() => onSearchChange('')}
+              className="px-4 py-3 bg-slate-700/50 hover:bg-slate-600/50 border border-slate-600/50 rounded-2xl text-slate-400 hover:text-white transition-colors duration-200"
+            >
+              <XMarkIcon className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Content continues... */}
+      {/* The rest of your existing product management content */}
+    </div>
+  );
+
+  // Category content
+  const renderCategoryContent = () => (
+    <div className="space-y-6">
+      {/* Add new category form */}
+      <div className="bg-slate-700/50 rounded-2xl p-6">
+        <h4 className="text-white font-semibold mb-4">Tambah Kategori Baru</h4>
+        <form onSubmit={handleAddTypeSubmit} className="flex gap-3">
+          <input
+            type="text"
+            placeholder="Nama kategori..."
+            value={newTypeName}
+            onChange={(e) => setNewTypeName(e.target.value)}
+            className="flex-1 px-4 py-2 bg-slate-800/50 border border-slate-600/50 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500"
+          />
+          <button
+            type="submit"
+            disabled={!newTypeName.trim() || isProcessing}
+            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Tambah
+          </button>
+        </form>
+      </div>
+      
+      {/* Category list */}
+      <div className="space-y-3">
+        {productTypes.map((type) => (
+          <div key={type.id} className="flex items-center justify-between p-4 bg-slate-700/50 rounded-2xl">
+            <div className="flex items-center gap-3">
+              <TagIcon className="w-5 h-5 text-purple-400" />
+              <span className="text-white font-medium">{type.name}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => openEditTypeDialog(type)}
+                className="p-2 text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                <PencilIcon className="w-4 h-4" />
+              </button>
+                             <button
+                 onClick={() => onDeleteType(type.id)}
+                 className="p-2 text-red-400 hover:text-red-300 transition-colors"
+               >
+                 <TrashIcon className="w-4 h-4" />
+               </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  // If activeSubMenu is set, return the sub-menu content
+  if (activeSubMenu) {
+    return (
+      <div className="p-0">
+        {renderSubMenuContent()}
+      </div>
+    );
+  }
 
   return (
     <div className="p-8">

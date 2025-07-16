@@ -22,32 +22,32 @@ import * as Toast from '@radix-ui/react-toast';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { XMarkIcon, DocumentTextIcon, PencilIcon, TrashIcon, ArrowRightIcon, ExclamationTriangleIcon, HomeIcon, ArrowLeftIcon, Bars3Icon } from '@heroicons/react/24/outline';
 
+const SIDEBAR_STATE_KEY = 'admin-sidebar-collapsed';
+
 export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<UserWithProfile | null>(null);
 
   const [activeTab, setActiveTab] = useState<AdminTab>('home');
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  
-  // Set initial sidebar state based on screen size
+  const [activeSubMenu, setActiveSubMenu] = useState<string>('');
+
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+    if (typeof window === 'undefined') {
+      return true;
+    }
+    const savedState = window.localStorage.getItem(SIDEBAR_STATE_KEY);
+    if (savedState !== null) {
+      return JSON.parse(savedState);
+    }
+    return window.innerWidth < 1024;
+  });
+
   useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 1024) { // lg breakpoint
-        setSidebarCollapsed(true);
-      } else {
-        setSidebarCollapsed(false);
-      }
-    };
-    
-    // Set initial state
-    handleResize();
-    
-    // Add event listener
-    window.addEventListener('resize', handleResize);
-    
-    // Cleanup
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(SIDEBAR_STATE_KEY, JSON.stringify(sidebarCollapsed));
+    }
+  }, [sidebarCollapsed]);
+
   const [products, setProducts] = useState<Product[]>([]);
   const [productTypes, setProductTypes] = useState<ProductType[]>([]);
   const [userDrafts, setUserDrafts] = useState<ProductDraft[]>([]);
@@ -110,18 +110,12 @@ export default function AdminPage() {
   const handleDeleteAllUserDraftsAction = async () => { if (!userProfile) return showToast("Kesalahan otentikasi.", 'error'); setIsProcessing(true); try { await deleteAllUserDrafts(userProfile.user.id); if (showProductFormDialog && userDrafts.some(d => d.id === activeDraftIdForForm)) { setShowProductFormDialog(false); setActiveDraftIdForForm(undefined); setFormInitialData(undefined); } setUserDrafts([]); showToast('Semua draf berhasil dihapus!'); } catch (error: unknown) { showToast(`Gagal menghapus semua draf: ${(error as Error).message}`, 'error'); } finally { setIsProcessing(false); }};
   const handleFormCancel = () => { setShowProductFormDialog(false); setActiveDraftIdForForm(undefined); setFormInitialData(undefined); };
   const handleProfileSave = async (data: OrganizationProfileData) => { setIsProfileSaving(true); try { const updatedProfile = await upsertOrganizationProfile(data); setOrganizationProfile(updatedProfile); showToast('Profil organisasi berhasil disimpan!'); } catch (error: unknown) { showToast(`Gagal menyimpan profil: ${(error as Error).message}`, 'error'); } finally { setIsProfileSaving(false); }};
-  const handleTabChange = (tab: AdminTab) => { 
-    setActiveTab(tab); 
-    
-    // Auto-close sidebar on mobile after navigation
-    if (window.innerWidth < 1024) {
-      setSidebarCollapsed(true);
-    }
-    
-    if (showProductFormDialog && tab !== 'products' && tab !== 'home') { 
-      setShowProductFormDialog(false); 
-      setActiveDraftIdForForm(undefined); 
-      setFormInitialData(undefined); 
+  const handleTabChange = (tab: AdminTab) => {
+    if (activeTab !== tab) { setActiveSubMenu(''); }
+    setActiveTab(tab);
+    if (window.innerWidth < 1024) { setSidebarCollapsed(true); }
+    if (showProductFormDialog && tab !== 'products' && tab !== 'home') {
+      setShowProductFormDialog(false); setActiveDraftIdForForm(undefined); setFormInitialData(undefined);
     }
   };
   const handleSetActiveTab = (tab: string) => { setActiveTab(tab as AdminTab); };
@@ -134,29 +128,11 @@ export default function AdminPage() {
 
   const renderMainContent = () => {
     switch (activeTab) {
-      case 'home':
-        return <DashboardHome products={products} productTypes={productTypes} userDrafts={userDrafts} storageUsage={storageUsage} setShowDraftsDialog={setShowDraftsDialog} onCreateNewProduct={handleCreateNewProduct} onEditDraft={openFormToEditExistingDraft} onSetActiveTab={handleSetActiveTab} isProcessing={isProcessing}/>;
-      case 'products':
-        return <ProductsTab products={filteredProducts} userDrafts={userDrafts} setShowDraftsDialog={setShowDraftsDialog} onCreateNewProduct={handleCreateNewProduct} onEditProduct={openFormToEditMasterProduct} onDeleteProduct={handleDeleteMasterProduct} onTogglePublish={handleTogglePublish} isProcessing={isProcessing} isDataLoading={isDataLoading} productTypes={productTypes} onAddType={handleAddProductType} onDeleteType={handleDeleteProductType} onUpdateType={handleUpdateProductType} searchTerm={searchTerm} onSearchChange={setSearchTerm}/>;
-      case 'transactions':
-        return <TransactionsTab />;
-      case 'profile':
-        return <ProfileTab organizationProfile={organizationProfile} onProfileSave={handleProfileSave} isProfileSaving={isProfileSaving} isDataLoading={isDataLoading}/>;
-      default:
-        return (
-          <div className="p-8 text-center">
-            <div className="text-slate-400 mb-4">
-              <h2 className="text-2xl font-bold mb-2">Page Not Found</h2>
-              <p>The requested page could not be found.</p>
-            </div>
-            <button 
-              onClick={() => setActiveTab('home')}
-              className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
-            >
-              Go to Dashboard
-            </button>
-          </div>
-        );
+      case 'home': return <DashboardHome products={products} productTypes={productTypes} userDrafts={userDrafts} storageUsage={storageUsage} setShowDraftsDialog={setShowDraftsDialog} onCreateNewProduct={handleCreateNewProduct} onEditDraft={openFormToEditExistingDraft} onSetActiveTab={handleSetActiveTab} isProcessing={isProcessing}/>;
+      case 'products': return <ProductsTab products={filteredProducts} userDrafts={userDrafts} setShowDraftsDialog={setShowDraftsDialog} onCreateNewProduct={handleCreateNewProduct} onEditProduct={openFormToEditMasterProduct} onDeleteProduct={handleDeleteMasterProduct} onTogglePublish={handleTogglePublish} isProcessing={isProcessing} isDataLoading={isDataLoading} productTypes={productTypes} onAddType={handleAddProductType} onDeleteType={handleDeleteProductType} onUpdateType={handleUpdateProductType} searchTerm={searchTerm} onSearchChange={setSearchTerm} activeSubMenu={activeSubMenu}/>;
+      case 'transactions': return <TransactionsTab />;
+      case 'profile': return <ProfileTab organizationProfile={organizationProfile} onProfileSave={handleProfileSave} isProfileSaving={isProfileSaving} isDataLoading={isDataLoading} activeSubMenu={activeSubMenu}/>;
+      default: return (<div className="p-8 text-center"><div className="text-slate-400 mb-4"><h2 className="text-2xl font-bold mb-2">Page Not Found</h2><p>The requested page could not be found.</p></div><button onClick={() => setActiveTab('home')} className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors">Go to Dashboard</button></div>);
     }
   };
 
@@ -164,49 +140,28 @@ export default function AdminPage() {
     <Toast.Provider swipeDirection="right">
       <Dialog.Root open={showDraftsDialog} onOpenChange={setShowDraftsDialog}>
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800 text-gray-100">
-          {/* Sidebar */}
-          <AdminSidebar 
-            activeTab={activeTab} 
-            onTabChange={handleTabChange}
+          <AdminSidebar
+            activeTab={activeTab}
+            onTabChangeAction={handleTabChange}
+            activeSubMenu={activeSubMenu}
+            onSubMenuChangeAction={setActiveSubMenu}
             isCollapsed={sidebarCollapsed}
             onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-            userProfile={userProfile ? {
-              name: userProfile.user.email?.split('@')[0] || 'Admin',
-              email: userProfile.user.email || ''
-            } : undefined}
-            stats={{
-              totalProducts: products.length,
-              totalTransactions: 0, // This would come from actual transaction data
-              pendingDrafts: userDrafts.length
-            }}
+            userProfile={userProfile ? { name: userProfile.user.email?.split('@')[0] || 'Admin', email: userProfile.user.email || '' } : undefined}
+            stats={{ totalProducts: products.length, totalTransactions: 0, pendingDrafts: userDrafts.length }}
           />
-          
-          {/* Main Content */}
           <div className={`transition-all duration-300 ${sidebarCollapsed ? 'ml-0 lg:ml-16' : 'ml-0 lg:ml-72'} min-h-screen`}>
             <div className="container mx-auto px-4 py-6 max-w-7xl">
               <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-6">
                 <div className="flex items-center gap-4 w-full lg:w-auto">
-                  <button
-                    onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                    className="lg:hidden p-2 hover:bg-slate-700/50 rounded-xl transition-colors"
-                  >
-                    {sidebarCollapsed ? (
-                      <Bars3Icon className="w-5 h-5 text-slate-400" />
-                    ) : (
-                      <XMarkIcon className="w-5 h-5 text-slate-400" />
-                    )}
-                  </button>
+                  <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className="lg:hidden p-2 hover:bg-slate-700/50 rounded-xl transition-colors">{sidebarCollapsed ? (<Bars3Icon className="w-5 h-5 text-slate-400" />) : (<XMarkIcon className="w-5 h-5 text-slate-400" />)}</button>
                   <div className="space-y-2"><h1 className="text-4xl font-bold bg-gradient-to-r from-red-400 via-red-500 to-red-600 bg-clip-text text-transparent">Progress Jogja</h1><p className="text-slate-400 text-lg">Dasbor Admin</p><p className="text-slate-500 text-sm">Kelola produk, transaksi, dan profil organisasi</p></div>
                 </div>
                 <div className="flex items-center gap-4"><div className="hidden md:block text-right"><p className="text-sm text-slate-400">Masuk sebagai</p><p className="text-white font-medium">{userProfile?.user?.email}</p></div><button onClick={() => window.open('/', '_blank')} className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold rounded-2xl transition-all duration-300 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:-translate-y-0.5 flex items-center gap-2.5"><HomeIcon className="w-5 h-5" /><span>Halaman Utama</span></button><AlertDialog.Root><AlertDialog.Trigger asChild><button className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold rounded-2xl transition-all duration-300 shadow-lg shadow-red-500/25 hover:shadow-red-500/40 hover:-translate-y-0.5">Keluar</button></AlertDialog.Trigger><AlertDialog.Portal><AlertDialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" /><AlertDialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-800/95 backdrop-blur-xl rounded-3xl p-8 w-full max-w-md z-50 border border-slate-700/50 shadow-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"><AlertDialog.Title className="text-2xl font-bold text-white mb-3">Konfirmasi Keluar</AlertDialog.Title><AlertDialog.Description className="text-slate-400 mb-8 text-lg">Apakah Anda yakin ingin keluar dari dasbor admin?</AlertDialog.Description><div className="flex gap-4 justify-end"><AlertDialog.Cancel asChild><button className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-xl transition-all duration-200">Batal</button></AlertDialog.Cancel><AlertDialog.Action asChild><button onClick={handleLogout} className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-medium rounded-xl transition-all duration-200">Keluar</button></AlertDialog.Action></div></AlertDialog.Content></AlertDialog.Portal></AlertDialog.Root></div>
               </header>
               {(isProcessing || isDataLoading || isProfileSaving) && (<div className="mb-6 p-6 bg-gradient-to-r from-red-900/40 to-red-800/40 backdrop-blur-xl border border-red-500/30 rounded-2xl shadow-lg"><div className="flex items-center justify-center gap-4"><LoadingSpinner /><span className="text-red-200 font-semibold text-lg">{isDataLoading ? 'Mengambil data...' : isProfileSaving ? 'Menyimpan profil...' : 'Memproses...'}</span></div></div>)}
               {networkError && (<div className="mb-6 p-6 bg-gradient-to-r from-red-900/40 to-red-800/40 backdrop-blur-xl border border-red-500/30 rounded-2xl shadow-lg"><div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></div><span className="text-red-200 font-medium">{networkError}</span></div><button onClick={() => loadAllAdminData(userProfile!.user.id, true).catch(console.error)} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition-all duration-200">Coba Lagi</button></div></div>)}
-              
-              {/* Main Content Area */}
-              <div className="bg-slate-800/40 backdrop-blur-xl rounded-3xl border border-slate-700/50 shadow-2xl shadow-slate-900/50 overflow-hidden">
-                {renderMainContent()}
-              </div>
+              <div className="bg-slate-800/40 backdrop-blur-xl rounded-3xl border border-slate-700/50 shadow-2xl shadow-slate-900/50 overflow-hidden">{renderMainContent()}</div>
             </div>
           </div>
           <Dialog.Root open={showProductFormDialog} onOpenChange={setShowProductFormDialog}><Dialog.Portal><Dialog.Overlay className="fixed inset-0 bg-black/70 backdrop-blur-md z-40 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" /><Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-[90vh] max-h-[90vh] bg-transparent border-none shadow-none z-50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] p-0"><VisuallyHidden><Dialog.Title>Editor Produk</Dialog.Title></VisuallyHidden>{activeDraftIdForForm && formInitialData !== undefined && (<AdminProductForm key={activeDraftIdForForm} activeDraftId={activeDraftIdForForm} initialDraftData={formInitialData} productTypes={productTypes} onSave={handleFormSave} onPublish={handleFormPublish} onCancel={handleFormCancel} isExternallySaving={isProcessing}/>)}</Dialog.Content></Dialog.Portal></Dialog.Root>
