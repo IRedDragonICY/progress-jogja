@@ -62,40 +62,22 @@ interface AdminSidebarProps {
 }
 
 const MENU_CONFIG: MenuItem[] = [
-  {
-    id: 'home',
-    label: 'Dashboard',
-    icon: HomeIcon,
-  },
-  {
-    id: 'products',
-    label: 'Products & Inventory',
-    icon: CubeIcon,
-    children: [
+  { id: 'home', label: 'Dashboard', icon: HomeIcon },
+  { id: 'products', label: 'Products & Inventory', icon: CubeIcon, children: [
       { id: 'products-overview', label: 'Overview', icon: ChartBarIcon },
       { id: 'products-manage', label: 'Manage Products', icon: ArchiveBoxIcon },
       { id: 'products-add', label: 'Add Product', icon: PlusIcon },
       { id: 'products-categories', label: 'Categories', icon: TagIcon },
       { id: 'products-drafts', label: 'Drafts', icon: DocumentDuplicateIcon, badge: 3 },
-    ],
-  },
-  {
-    id: 'transactions',
-    label: 'Transactions',
-    icon: CreditCardIcon,
-    children: [
+  ]},
+  { id: 'transactions', label: 'Transactions', icon: CreditCardIcon, children: [
       { id: 'transactions-overview', label: 'Overview', icon: ChartBarIcon },
       { id: 'transactions-pending', label: 'Pending', icon: ClockIcon, badge: 5 },
       { id: 'transactions-completed', label: 'Completed', icon: CheckCircleIcon },
       { id: 'transactions-failed', label: 'Failed', icon: XCircleIcon },
       { id: 'transactions-revenue', label: 'Revenue', icon: BanknotesIcon },
-    ],
-  },
-  {
-    id: 'profile',
-    label: 'Organization',
-    icon: BuildingStorefrontIcon,
-    children: [
+  ]},
+  { id: 'profile', label: 'Organization', icon: BuildingStorefrontIcon, children: [
       { id: 'profile-general', label: 'Informasi Umum', icon: InformationCircleIcon },
       { id: 'profile-address', label: 'Alamat', icon: MapPinIcon },
       { id: 'profile-contact', label: 'Kontak', icon: PhoneIcon },
@@ -106,8 +88,7 @@ const MENU_CONFIG: MenuItem[] = [
       { id: 'profile-achievements', label: 'Penghargaan', icon: TrophyIcon },
       { id: 'profile-events', label: 'Event Internasional', icon: GlobeAltIcon },
       { id: 'profile-settings', label: 'Settings', icon: Cog6ToothIcon },
-    ],
-  },
+  ]},
 ];
 
 export function AdminSidebar({
@@ -124,15 +105,10 @@ export function AdminSidebar({
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
   useEffect(() => {
-    if (activeTab === 'products' && !expandedItems.includes('products')) {
-      setExpandedItems(prev => [...prev, 'products']);
-    } else if (activeTab === 'transactions' && !expandedItems.includes('transactions')) {
-      setExpandedItems(prev => [...prev, 'transactions']);
-    } else if (activeTab === 'profile' && !expandedItems.includes('profile')) {
-      setExpandedItems(prev => [...prev, 'profile']);
+    if (activeTab && !expandedItems.includes(activeTab)) {
+      setExpandedItems(prev => [...prev, activeTab]);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
+  }, [activeTab, expandedItems]);
 
   const toggleExpanded = (itemId: string) => {
     setExpandedItems(prev =>
@@ -193,36 +169,43 @@ export function AdminSidebar({
       <AnimatePresence>
         {!isCollapsed && (<motion.div className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-30" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onToggleCollapse}/>)}
       </AnimatePresence>
-      <motion.div
-        className={`fixed left-0 top-0 h-full z-40 bg-slate-900/95 backdrop-blur-xl border-r border-slate-700/50 transition-all duration-300 ease-in-out ${isCollapsed ? 'w-16 -translate-x-full lg:translate-x-0' : 'w-72 translate-x-0'} ${isCollapsed ? 'lg:w-16' : 'lg:w-72'}`}
+      <motion.aside
+        className={`fixed left-0 top-0 h-full z-40 bg-slate-900/95 backdrop-blur-xl border-r border-slate-700/50 transition-all duration-300 ease-in-out flex flex-col ${isCollapsed ? 'w-16 -translate-x-full lg:translate-x-0' : 'w-72 translate-x-0'}`}
         initial={{ x: -300 }}
         animate={{ x: 0 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
       >
-        <div className="flex items-center justify-between p-4 border-b border-slate-700/50">
-          {!isCollapsed && (<div className="flex items-center gap-3"><div className="w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center"><span className="text-white font-bold text-sm">PJ</span></div><div><h2 className="text-white font-bold text-lg">Progress Jogja</h2><p className="text-slate-400 text-xs">Admin Panel</p></div></div>)}
-          <button onClick={onToggleCollapse} className="p-2 hover:bg-slate-700/50 rounded-xl transition-colors">{isCollapsed ? (<Bars3Icon className="w-5 h-5 text-slate-400" />) : (<XMarkIcon className="w-5 h-5 text-slate-400" />)}</button>
+        <div className="flex-shrink-0">
+          <div className="flex items-center justify-between p-4 border-b border-slate-700/50">
+            {!isCollapsed && (<div className="flex items-center gap-3"><div className="w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center"><span className="text-white font-bold text-sm">PJ</span></div><div><h2 className="text-white font-bold text-lg">Progress Jogja</h2><p className="text-slate-400 text-xs">Admin Panel</p></div></div>)}
+            <button onClick={onToggleCollapse} className="p-2 hover:bg-slate-700/50 rounded-xl transition-colors">{isCollapsed ? (<Bars3Icon className="w-5 h-5 text-slate-400" />) : (<XMarkIcon className="w-5 h-5 text-slate-400" />)}</button>
+          </div>
+          {!isCollapsed && userProfile && (
+            <div className="p-4 border-b border-slate-700/50">
+              <div className="flex items-center gap-3"><div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center"><span className="text-white font-medium text-sm">{userProfile.name.charAt(0).toUpperCase()}</span></div><div className="flex-1 min-w-0"><p className="text-white font-medium text-sm truncate">{userProfile.name}</p><p className="text-slate-400 text-xs truncate">{userProfile.email}</p></div></div>
+            </div>
+          )}
+          {!isCollapsed && stats && (
+            <div className="p-4 border-b border-slate-700/50">
+              <div className="grid grid-cols-3 gap-2">
+                <div className="text-center"><div className="text-white font-bold text-lg">{stats.totalProducts}</div><div className="text-slate-400 text-xs">Products</div></div>
+                <div className="text-center"><div className="text-white font-bold text-lg">{stats.totalTransactions}</div><div className="text-slate-400 text-xs">Sales</div></div>
+                <div className="text-center"><div className="text-white font-bold text-lg">{stats.pendingDrafts}</div><div className="text-slate-400 text-xs">Drafts</div></div>
+              </div>
+            </div>
+          )}
         </div>
-        {!isCollapsed && userProfile && (
-          <div className="p-4 border-b border-slate-700/50">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center"><span className="text-white font-medium text-sm">{userProfile.name.charAt(0).toUpperCase()}</span></div>
-              <div className="flex-1 min-w-0"><p className="text-white font-medium text-sm truncate">{userProfile.name}</p><p className="text-slate-400 text-xs truncate">{userProfile.email}</p></div>
-            </div>
-          </div>
-        )}
-        {!isCollapsed && stats && (
-          <div className="p-4 border-b border-slate-700/50">
-            <div className="grid grid-cols-3 gap-2">
-              <div className="text-center"><div className="text-white font-bold text-lg">{stats.totalProducts}</div><div className="text-slate-400 text-xs">Products</div></div>
-              <div className="text-center"><div className="text-white font-bold text-lg">{stats.totalTransactions}</div><div className="text-slate-400 text-xs">Sales</div></div>
-              <div className="text-center"><div className="text-white font-bold text-lg">{stats.pendingDrafts}</div><div className="text-slate-400 text-xs">Drafts</div></div>
-            </div>
-          </div>
-        )}
-        <div className="flex-1 overflow-y-auto py-4"><nav className="space-y-2">{MENU_CONFIG.map(item => renderMenuItem(item))}</nav></div>
-        <div className="p-4 border-t border-slate-700/50">{!isCollapsed && (<div className="text-center"><p className="text-slate-400 text-xs">© 2024 Progress Jogja</p></div>)}</div>
-      </motion.div>
+
+        <div className="flex-1 overflow-y-auto custom-scrollbar py-4">
+          <nav className="space-y-2">
+            {MENU_CONFIG.map(item => renderMenuItem(item))}
+          </nav>
+        </div>
+
+        <div className="p-4 border-t border-slate-700/50 flex-shrink-0">
+          {!isCollapsed && (<div className="text-center"><p className="text-slate-400 text-xs">© 2024 Progress Jogja</p></div>)}
+        </div>
+      </motion.aside>
     </>
   );
 }
