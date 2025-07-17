@@ -338,6 +338,27 @@ export const getOrders = async (userId?: string): Promise<Order[]> => {
     return data || [];
 };
 
+export const getCurrentMonthRevenue = async (): Promise<number> => {
+    const today = new Date();
+    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
+    const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+
+    const { data, error } = await supabase
+        .from('orders')
+        .select('total_amount')
+        .in('status', ['paid', 'completed'])
+        .gte('created_at', firstDayOfMonth)
+        .lt('created_at', nextMonth.toISOString());
+
+    if (error) {
+        console.error("Error fetching current month revenue:", error);
+        throw error;
+    }
+
+    const totalRevenue = data?.reduce((sum, order) => sum + order.total_amount, 0) || 0;
+    return totalRevenue;
+};
+
 export const updateOrderStatus = async (orderId: string, status: OrderStatus, provider?: string, trackingNumber?: string): Promise<Order> => {
     const { data, error } = await supabase
         .from('orders')

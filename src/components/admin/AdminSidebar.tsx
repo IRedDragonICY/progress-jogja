@@ -53,11 +53,6 @@ interface AdminSidebarProps {
     email: string;
     avatar?: string;
   };
-  stats?: {
-    totalProducts: number;
-    totalTransactions: number;
-    pendingDrafts: number;
-  };
 }
 
 const MENU_CONFIG: MenuItem[] = [
@@ -99,7 +94,6 @@ export function AdminSidebar({
   isCollapsed = false,
   onToggleCollapse,
   userProfile,
-  stats,
 }: AdminSidebarProps) {
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
@@ -147,14 +141,6 @@ export function AdminSidebar({
     const isActive = level === 0 ? activeTab === item.id : activeSubMenu === item.id;
     const isHovered = hoveredItem === item.id;
 
-    let badgeCount: number | undefined;
-    if (item.id === 'products-drafts') {
-      badgeCount = stats?.pendingDrafts;
-    }
-    if (item.id === 'transactions-pending') {
-      badgeCount = stats?.totalTransactions;
-    }
-
     return (
       <div key={item.id} className="mb-1">
         <motion.div
@@ -167,11 +153,6 @@ export function AdminSidebar({
         >
           <item.icon className={`w-5 h-5 transition-all duration-200 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-white'} ${level > 0 ? 'w-4 h-4' : ''}`} />
           {!isCollapsed && (<span className={`flex-1 font-medium text-sm transition-colors duration-200 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-white'}`}>{item.label}</span>)}
-          {!isCollapsed && badgeCount !== undefined && badgeCount > 0 && (
-            <motion.span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full font-medium" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 25 }}>
-                {badgeCount > 99 ? '99+' : badgeCount}
-            </motion.span>
-          )}
           {!isCollapsed && item.children && (<motion.div animate={{ rotate: isExpanded ? 90 : 0 }} transition={{ duration: 0.2 }}><ChevronRightIcon className="w-4 h-4" /></motion.div>)}
           {isActive && (<motion.div className="absolute right-0 top-0 bottom-0 w-1 bg-white rounded-l-full" layoutId="activeIndicator" transition={{ type: "spring", stiffness: 500, damping: 25 }} />)}
         </motion.div>
@@ -199,15 +180,6 @@ export function AdminSidebar({
           {!isCollapsed && userProfile && (
             <div className="p-4 border-b border-slate-700/50">
               <div className="flex items-center gap-3"><div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center"><span className="text-white font-medium text-sm">{userProfile.name.charAt(0).toUpperCase()}</span></div><div className="flex-1 min-w-0"><p className="text-white font-medium text-sm truncate">{userProfile.name}</p><p className="text-slate-400 text-xs truncate">{userProfile.email}</p></div></div>
-            </div>
-          )}
-          {!isCollapsed && stats && (
-            <div className="p-4 border-b border-slate-700/50">
-              <div className="grid grid-cols-3 gap-2">
-                <div className="text-center"><div className="text-white font-bold text-lg">{stats.totalProducts}</div><div className="text-slate-400 text-xs">Produk</div></div>
-                <div className="text-center"><div className="text-white font-bold text-lg">{stats.totalTransactions}</div><div className="text-slate-400 text-xs">Penjualan</div></div>
-                <div className="text-center"><div className="text-white font-bold text-lg">{stats.pendingDrafts}</div><div className="text-slate-400 text-xs">Draf</div></div>
-              </div>
             </div>
           )}
         </div>

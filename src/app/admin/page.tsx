@@ -10,7 +10,8 @@ import {
   getAllUsersWithProfiles,
   adminUpdateFullUserProfile,
   adminDeleteUserProfile,
-  adminCreateUser
+  adminCreateUser,
+  getCurrentMonthRevenue
 } from "@/lib/supabase";
 import type { UserWithProfile, Profile, NewUserPayload } from "@/types/supabase";
 import type { Product, ProductType, ProductDraft, OrganizationProfileData, StorageUsageData } from "@/types/supabase";
@@ -59,6 +60,7 @@ export default function AdminPage() {
   const [organizationProfile, setOrganizationProfile] = useState<OrganizationProfileData | null>(null);
   const [storageUsage, setStorageUsage] = useState<StorageUsageData | null>(null);
   const [allUsers, setAllUsers] = useState<Profile[]>([]);
+  const [monthlyRevenue, setMonthlyRevenue] = useState(0);
   const [showProductFormDialog, setShowProductFormDialog] = useState(false);
   const [formInitialData, setFormInitialData] = useState<Partial<ProductFormData> | undefined>(undefined);
   const [activeDraftIdForForm, setActiveDraftIdForForm] = useState<string | undefined>(undefined);
@@ -83,8 +85,8 @@ export default function AdminPage() {
     setIsDataLoading(true);
     setNetworkError(null);
     try {
-      const [productsData, typesData, draftsData, profileData, storageData, allUsersData] = await Promise.all([
-        getProducts(force), getProductTypes(force), getUserDrafts(userId, force), getOrganizationProfile(force), getStorageUsage(force), getAllUsersWithProfiles(force)
+      const [productsData, typesData, draftsData, profileData, storageData, allUsersData, monthlyRevenueData] = await Promise.all([
+        getProducts(force), getProductTypes(force), getUserDrafts(userId, force), getOrganizationProfile(force), getStorageUsage(force), getAllUsersWithProfiles(force), getCurrentMonthRevenue()
       ]);
       setProducts(productsData);
       setProductTypes(typesData);
@@ -92,6 +94,7 @@ export default function AdminPage() {
       setOrganizationProfile(profileData);
       setStorageUsage(storageData);
       setAllUsers(allUsersData);
+      setMonthlyRevenue(monthlyRevenueData);
     } catch (err: unknown) {
       setNetworkError(`Gagal memuat data: ${(err as Error).message}`);
     } finally {
@@ -384,7 +387,7 @@ export default function AdminPage() {
     switch (activeTab) {
       case 'home':
         return <DashboardHome products={products} productTypes={productTypes} userDrafts={userDrafts}
-                              storageUsage={storageUsage} setShowDraftsDialog={setShowDraftsDialog}
+                              storageUsage={storageUsage} totalUsers={allUsers.length} monthlyRevenue={monthlyRevenue} setShowDraftsDialog={setShowDraftsDialog}
                               onCreateNewProduct={handleCreateNewProduct} onEditDraft={openFormToEditExistingDraft}
                               onSetActiveTab={handleSetActiveTab} isProcessing={isProcessing}/>;
       case 'products':
@@ -432,7 +435,6 @@ export default function AdminPage() {
                   name: userProfile.user.email?.split('@')[0] || 'Admin',
                   email: userProfile.user.email || ''
                 } : undefined}
-                stats={{totalProducts: products.length, totalTransactions: 0, pendingDrafts: userDrafts.length}}
             />
             <div
                 className={`transition-all duration-300 ${sidebarCollapsed ? 'ml-0 lg:ml-16' : 'ml-0 lg:ml-72'} min-h-screen`}>

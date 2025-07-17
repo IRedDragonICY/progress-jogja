@@ -9,7 +9,9 @@ import {
   DocumentTextIcon,
   PencilIcon,
   BuildingStorefrontIcon,
-  HomeIcon
+  HomeIcon,
+  UsersIcon,
+  BanknotesIcon
 } from '@heroicons/react/24/outline';
 import type { Product, ProductType, ProductDraft, StorageUsageData } from "@/types/supabase";
 import { StorageUsageWidget } from '@/components/admin/StorageUsageWidget';
@@ -19,6 +21,8 @@ interface DashboardHomeProps {
   productTypes: ProductType[];
   userDrafts: ProductDraft[];
   storageUsage: StorageUsageData | null;
+  totalUsers: number;
+  monthlyRevenue: number;
   setShowDraftsDialog: (show: boolean) => void;
   onCreateNewProduct: () => void;
   onEditDraft: (draft: ProductDraft) => void;
@@ -31,13 +35,15 @@ const StatsCard = ({
   value,
   icon: Icon,
   gradient,
-  description
+  description,
+  isCurrency = false
 }: {
   title: string;
   value: number;
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   gradient: string;
   description?: string;
+  isCurrency?: boolean;
 }) => (
   <div className="group relative bg-gradient-to-br from-slate-800/60 to-slate-900/60 backdrop-blur-xl rounded-2xl p-6 border border-slate-700/50 hover:border-slate-600/50 transition-all duration-300 hover:shadow-xl hover:shadow-slate-900/30 hover:-translate-y-1">
     <div className="flex items-center justify-between">
@@ -46,7 +52,7 @@ const StatsCard = ({
           {title}
         </p>
         <p className={`text-3xl font-bold bg-gradient-to-r ${gradient} bg-clip-text text-transparent`}>
-          {value}
+          {isCurrency ? `Rp${value.toLocaleString('id-ID')}` : value}
         </p>
         {description && (
           <p className="text-xs text-slate-500">{description}</p>
@@ -95,6 +101,8 @@ export function DashboardHome({
   productTypes,
   userDrafts,
   storageUsage,
+  totalUsers,
+  monthlyRevenue,
   setShowDraftsDialog,
   onCreateNewProduct,
   onEditDraft,
@@ -122,7 +130,7 @@ export function DashboardHome({
             <HomeIcon className="w-5 h-5" />
             <span>Halaman Utama</span>
           </button>
-          
+
           <Dialog.Trigger asChild>
               <button
                   onClick={() => setShowDraftsDialog(true)}
@@ -139,13 +147,28 @@ export function DashboardHome({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <StatsCard
           title="Total Produk"
           value={products.length}
           icon={CubeIcon}
           gradient="from-blue-400 to-blue-600"
           description="Semua produk dalam sistem"
+        />
+        <StatsCard
+          title="Total Pengguna"
+          value={totalUsers}
+          icon={UsersIcon}
+          gradient="from-cyan-400 to-cyan-600"
+          description="Semua pengguna terdaftar"
+        />
+        <StatsCard
+          title="Pendapatan Bulan Ini"
+          value={monthlyRevenue}
+          icon={BanknotesIcon}
+          gradient="from-lime-400 to-lime-600"
+          description="Status 'Paid' & 'Completed'"
+          isCurrency={true}
         />
         <StatsCard
           title="Diterbitkan"
