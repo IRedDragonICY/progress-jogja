@@ -37,7 +37,6 @@ interface MenuItem {
   id: string;
   label: string;
   icon: React.ElementType;
-  badge?: number;
   children?: MenuItem[];
   onClick?: () => void;
 }
@@ -68,11 +67,11 @@ const MENU_CONFIG: MenuItem[] = [
       { id: 'products-manage', label: 'Kelola Produk', icon: ArchiveBoxIcon },
       { id: 'products-add', label: 'Tambah Produk', icon: PlusIcon },
       { id: 'products-categories', label: 'Kategori', icon: TagIcon },
-      { id: 'products-drafts', label: 'Draf', icon: DocumentDuplicateIcon, badge: 3 },
+      { id: 'products-drafts', label: 'Draf', icon: DocumentDuplicateIcon },
   ]},
   { id: 'transactions', label: 'Transaksi', icon: CreditCardIcon, children: [
       { id: 'transactions-overview', label: 'Ringkasan', icon: ChartBarIcon },
-      { id: 'transactions-pending', label: 'Tertunda', icon: ClockIcon, badge: 5 },
+      { id: 'transactions-pending', label: 'Tertunda', icon: ClockIcon },
       { id: 'transactions-completed', label: 'Selesai', icon: CheckCircleIcon },
       { id: 'transactions-failed', label: 'Gagal', icon: XCircleIcon },
       { id: 'transactions-revenue', label: 'Pendapatan', icon: BanknotesIcon },
@@ -148,6 +147,14 @@ export function AdminSidebar({
     const isActive = level === 0 ? activeTab === item.id : activeSubMenu === item.id;
     const isHovered = hoveredItem === item.id;
 
+    let badgeCount: number | undefined;
+    if (item.id === 'products-drafts') {
+      badgeCount = stats?.pendingDrafts;
+    }
+    if (item.id === 'transactions-pending') {
+      badgeCount = stats?.totalTransactions;
+    }
+
     return (
       <div key={item.id} className="mb-1">
         <motion.div
@@ -160,7 +167,11 @@ export function AdminSidebar({
         >
           <item.icon className={`w-5 h-5 transition-all duration-200 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-white'} ${level > 0 ? 'w-4 h-4' : ''}`} />
           {!isCollapsed && (<span className={`flex-1 font-medium text-sm transition-colors duration-200 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-white'}`}>{item.label}</span>)}
-          {!isCollapsed && item.badge && (<motion.span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full font-medium" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 25 }}>{item.badge > 99 ? '99+' : item.badge}</motion.span>)}
+          {!isCollapsed && badgeCount !== undefined && badgeCount > 0 && (
+            <motion.span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full font-medium" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 25 }}>
+                {badgeCount > 99 ? '99+' : badgeCount}
+            </motion.span>
+          )}
           {!isCollapsed && item.children && (<motion.div animate={{ rotate: isExpanded ? 90 : 0 }} transition={{ duration: 0.2 }}><ChevronRightIcon className="w-4 h-4" /></motion.div>)}
           {isActive && (<motion.div className="absolute right-0 top-0 bottom-0 w-1 bg-white rounded-l-full" layoutId="activeIndicator" transition={{ type: "spring", stiffness: 500, damping: 25 }} />)}
         </motion.div>

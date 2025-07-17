@@ -235,6 +235,7 @@ export function UsersTab({ users, currentUserProfile, onUpdateUser, onDeleteUser
                              <Select.Trigger className="w-full flex items-center justify-between px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white focus:ring-2 focus:ring-red-500/50 focus:border-red-500"><Select.Value placeholder="Pilih peran..." /><Select.Icon><ChevronDownIcon className="w-5 h-5"/></Select.Icon></Select.Trigger>
                              <Select.Portal>
                                 <Select.Content className="bg-slate-800 border border-slate-700 rounded-xl shadow-lg z-[60] p-2">
+                                  <Select.Viewport>
                                     <Select.Item value="user" className="px-3 py-2 text-sm text-white rounded-lg hover:bg-slate-700 flex items-center justify-between outline-none cursor-pointer data-[highlighted]:bg-slate-700">
                                         <Select.ItemText>User</Select.ItemText>
                                         <Select.ItemIndicator><CheckIcon className="w-4 h-4"/></Select.ItemIndicator>
@@ -243,6 +244,7 @@ export function UsersTab({ users, currentUserProfile, onUpdateUser, onDeleteUser
                                         <Select.ItemText>Admin</Select.ItemText>
                                         <Select.ItemIndicator><CheckIcon className="w-4 h-4"/></Select.ItemIndicator>
                                     </Select.Item>
+                                  </Select.Viewport>
                                 </Select.Content>
                              </Select.Portal>
                         </Select.Root>
