@@ -3,7 +3,7 @@ import Image from 'next/image';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as AlertDialog from '@radix-ui/react-alert-dialog';
 import * as Select from '@radix-ui/react-select';
-import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
+import * as Form from '@radix-ui/react-form';
 import {
   UserCircleIcon,
   PencilIcon,
@@ -16,9 +16,11 @@ import {
   UserPlusIcon,
   ShieldCheckIcon,
   XMarkIcon,
-  UsersIcon
+  UsersIcon,
+  EnvelopeIcon,
+  LockClosedIcon
 } from '@heroicons/react/24/outline';
-import type { Profile, UserWithProfile } from '@/types/supabase';
+import type { Profile, UserWithProfile, NewUserPayload } from '@/types/supabase';
 import EditProfileForm from '@/components/EditProfileForm';
 import type { User } from '@supabase/supabase-js';
 
@@ -27,6 +29,7 @@ interface UsersTabProps {
   currentUserProfile: UserWithProfile | null;
   onUpdateUser: (userId: string, updates: Partial<Profile>) => Promise<void>;
   onDeleteUser: (userId: string) => Promise<void>;
+  onCreateUser: (payload: NewUserPayload) => Promise<boolean>;
   isProcessing: boolean;
   isDataLoading: boolean;
 }
@@ -90,12 +93,14 @@ const PaginationControls = ({
   );
 };
 
-export function UsersTab({ users, currentUserProfile, onUpdateUser, onDeleteUser, isDataLoading }: UsersTabProps) {
+export function UsersTab({ users, currentUserProfile, onUpdateUser, onDeleteUser, onCreateUser, isProcessing, isDataLoading }: UsersTabProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [editingUser, setEditingUser] = useState<Profile | null>(null);
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
+  const [isAddUserOpen, setIsAddUserOpen] = useState(false);
+  const [newUserForm, setNewUserForm] = useState<NewUserPayload>({ email: '', password: '', full_name: '', role: 'user' });
 
   const filteredUsers = useMemo(() => {
     if (!searchTerm) return users;
@@ -138,6 +143,15 @@ export function UsersTab({ users, currentUserProfile, onUpdateUser, onDeleteUser
     setDeleteUserId(null);
   };
 
+  const handleCreateUserSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      const success = await onCreateUser(newUserForm);
+      if (success) {
+          setIsAddUserOpen(false);
+          setNewUserForm({ email: '', password: '', full_name: '', role: 'user' });
+      }
+  };
+
   const editingUserWithProfile: UserWithProfile | null = editingUser ? {
       user: { id: editingUser.id } as User,
       profile: editingUser,
@@ -151,7 +165,7 @@ export function UsersTab({ users, currentUserProfile, onUpdateUser, onDeleteUser
           <p className="text-slate-400">Kelola akun dan peran pengguna</p>
         </div>
         <div className="flex gap-3">
-          <button onClick={() => alert('Fitur ini belum diimplementasikan.')} className="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold rounded-2xl transition-all duration-300 shadow-lg shadow-red-500/25 hover:shadow-red-500/40 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2.5 border border-red-400/20"><UserPlusIcon className="w-5 h-5" />Tambah Pengguna</button>
+          <button onClick={() => setIsAddUserOpen(true)} className="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold rounded-2xl transition-all duration-300 shadow-lg shadow-red-500/25 hover:shadow-red-500/40 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2.5 border border-red-400/20"><UserPlusIcon className="w-5 h-5" />Tambah Pengguna</button>
         </div>
       </div>
       <div className="mb-8"><div className="relative"><MagnifyingGlassIcon className="absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 text-slate-400 pointer-events-none" /><input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Cari pengguna berdasarkan nama atau email..." className="w-full pl-16 pr-6 py-4 bg-slate-800/60 backdrop-blur-sm border border-slate-700/50 text-white rounded-2xl focus:ring-2 focus:ring-red-500/50 focus:border-red-500/50 transition-all duration-200 placeholder-slate-400 text-lg" /></div></div>
@@ -196,6 +210,51 @@ export function UsersTab({ users, currentUserProfile, onUpdateUser, onDeleteUser
         </div>
         {filteredUsers.length > 0 && (<div className="px-8 py-6 border-t border-slate-700/50"><PaginationControls currentPage={currentPage} totalPages={totalPages} totalItems={filteredUsers.length} itemsPerPage={itemsPerPage} onPageChange={setCurrentPage} onItemsPerPageChange={setItemsPerPage} startIndex={startIndex} endIndex={endIndex} /></div>)}
       </div>
+
+      <Dialog.Root open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
+        <Dialog.Portal>
+            <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" />
+            <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-slate-800/95 backdrop-blur-xl border border-slate-700/50 rounded-3xl shadow-2xl z-50">
+                 <Form.Root onSubmit={handleCreateUserSubmit} className="p-8 space-y-6">
+                    <Dialog.Title className="text-2xl font-bold text-white mb-2">Tambah Pengguna Baru</Dialog.Title>
+                     <Form.Field name="full_name" className="space-y-2">
+                        <Form.Label className="text-sm font-medium text-slate-300">Nama Lengkap</Form.Label>
+                        <div className="relative"><UserCircleIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" /><input type="text" required value={newUserForm.full_name} onChange={e => setNewUserForm(p => ({...p, full_name: e.target.value}))} className="w-full pl-12 pr-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white focus:ring-2 focus:ring-red-500/50 focus:border-red-500"/></div>
+                    </Form.Field>
+                    <Form.Field name="email" className="space-y-2">
+                        <Form.Label className="text-sm font-medium text-slate-300">Email</Form.Label>
+                        <div className="relative"><EnvelopeIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" /><input type="email" required value={newUserForm.email} onChange={e => setNewUserForm(p => ({...p, email: e.target.value}))} className="w-full pl-12 pr-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white focus:ring-2 focus:ring-red-500/50 focus:border-red-500"/></div>
+                    </Form.Field>
+                    <Form.Field name="password" className="space-y-2">
+                        <Form.Label className="text-sm font-medium text-slate-300">Password</Form.Label>
+                        <div className="relative"><LockClosedIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" /><input type="password" required minLength={8} value={newUserForm.password} onChange={e => setNewUserForm(p => ({...p, password: e.target.value}))} className="w-full pl-12 pr-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white focus:ring-2 focus:ring-red-500/50 focus:border-red-500"/></div>
+                    </Form.Field>
+                     <Form.Field name="role" className="space-y-2">
+                        <Form.Label className="text-sm font-medium text-slate-300">Peran</Form.Label>
+                        <Select.Root value={newUserForm.role} onValueChange={(v: 'user' | 'admin') => setNewUserForm(p => ({...p, role: v}))}>
+                             <Select.Trigger className="w-full flex items-center justify-between px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white focus:ring-2 focus:ring-red-500/50 focus:border-red-500"><Select.Value placeholder="Pilih peran..." /><Select.Icon><ChevronDownIcon className="w-5 h-5"/></Select.Icon></Select.Trigger>
+                             <Select.Portal>
+                                <Select.Content className="bg-slate-800 border border-slate-700 rounded-xl shadow-lg z-[60] p-2">
+                                    <Select.Item value="user" className="px-3 py-2 text-sm text-white rounded-lg hover:bg-slate-700 flex items-center justify-between outline-none cursor-pointer data-[highlighted]:bg-slate-700">
+                                        <Select.ItemText>User</Select.ItemText>
+                                        <Select.ItemIndicator><CheckIcon className="w-4 h-4"/></Select.ItemIndicator>
+                                    </Select.Item>
+                                    <Select.Item value="admin" className="px-3 py-2 text-sm text-white rounded-lg hover:bg-slate-700 flex items-center justify-between outline-none cursor-pointer data-[highlighted]:bg-slate-700">
+                                        <Select.ItemText>Admin</Select.ItemText>
+                                        <Select.ItemIndicator><CheckIcon className="w-4 h-4"/></Select.ItemIndicator>
+                                    </Select.Item>
+                                </Select.Content>
+                             </Select.Portal>
+                        </Select.Root>
+                    </Form.Field>
+                    <div className="flex justify-end gap-3 pt-4">
+                        <Dialog.Close asChild><button type="button" className="px-6 py-2 bg-slate-600 text-white rounded-xl font-medium hover:bg-slate-500 transition-colors">Batal</button></Dialog.Close>
+                        <button type="submit" disabled={isProcessing} className="px-6 py-2 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors disabled:opacity-50"> {isProcessing ? 'Memproses...' : 'Buat Pengguna'} </button>
+                    </div>
+                 </Form.Root>
+            </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
 
       <Dialog.Root open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
         <Dialog.Portal>

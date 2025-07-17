@@ -207,3 +207,10 @@ export interface Review {
   comment: string | null;
   created_at: string;
 }
+
+export interface NewUserPayload {
+  email: string;
+  password: string;
+  full_name: string;
+  role: 'user' | 'admin';
+}

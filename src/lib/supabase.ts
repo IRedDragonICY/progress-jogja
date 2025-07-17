@@ -1,5 +1,5 @@
 import { createBrowserClient } from '@supabase/ssr';
-import { Product, ProductType, ProductDraft, ProductFormData, StoreLinkItem, OrganizationProfileData, Profile, StorageUsageData, Order, OrderStatus, Review } from '@/types/supabase';
+import { Product, ProductType, ProductDraft, ProductFormData, StoreLinkItem, OrganizationProfileData, Profile, StorageUsageData, Order, OrderStatus, Review, NewUserPayload } from '@/types/supabase';
 import { v4 as uuidv4 } from 'uuid';
 
 export const supabase = createBrowserClient(
@@ -304,6 +304,25 @@ export const adminDeleteUserProfile = async (userId: string): Promise<void> => {
     }
 
     CacheManager.invalidate(CACHE_KEYS.ALL_USERS_PROFILES);
+};
+
+export const adminCreateUser = async (payload: NewUserPayload): Promise<Profile> => {
+    const response = await fetch('/api/admin/create-user', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+        throw new Error(result.error || 'Failed to create user via API.');
+    }
+
+    CacheManager.invalidate(CACHE_KEYS.ALL_USERS_PROFILES);
+    return result as Profile;
 };
 
 export const getOrders = async (userId?: string): Promise<Order[]> => {
