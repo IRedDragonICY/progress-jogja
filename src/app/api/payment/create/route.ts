@@ -18,14 +18,12 @@ export async function POST(req: NextRequest) {
         set(name: string, value: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value, ...options });
-          } catch (error) {
-          }
+          } catch (error) {}
         },
         remove(name: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value: '', ...options });
-          } catch (error) {
-          }
+          } catch (error) {}
         },
       },
     }
@@ -60,7 +58,8 @@ export async function POST(req: NextRequest) {
   });
 
   const ppnAmount = subtotalAmount * 0.1;
-  const totalAmount = Math.round(subtotalAmount + ppnAmount);
+  const shippingCost = checkoutData.shipping_cost || 0;
+  const totalAmount = Math.round(subtotalAmount + ppnAmount + shippingCost);
 
   const { error: orderError } = await supabase
     .from('orders')
@@ -77,6 +76,9 @@ export async function POST(req: NextRequest) {
         full_address: checkoutData.alamat,
       },
       payment_method: checkoutData.metodePembayaran,
+      shipping_service: checkoutData.shipping_service,
+      shipping_etd: checkoutData.shipping_etd,
+      shipping_cost: shippingCost,
     })
     .select()
     .single();
@@ -85,6 +87,27 @@ export async function POST(req: NextRequest) {
     console.error('Error creating order in Supabase:', orderError);
     return NextResponse.json({ error: 'Could not create order', details: orderError.message }, { status: 500 });
   }
+
+  const itemDetails = [
+    ...orderItems.map(item => ({
+      id: item.product_id,
+      price: item.price,
+      quantity: item.quantity,
+      name: item.name,
+    })),
+    {
+      id: 'SHIPPING',
+      price: shippingCost,
+      quantity: 1,
+      name: `Pengiriman (${checkoutData.shipping_service})`,
+    },
+    {
+      id: 'PPN_10',
+      price: Math.round(ppnAmount),
+      quantity: 1,
+      name: 'PPN 10%',
+    },
+  ];
 
   const parameter = {
     transaction_details: {
@@ -101,20 +124,7 @@ export async function POST(req: NextRequest) {
         phone: checkoutData.telepon,
       }
     },
-    item_details: [
-      ...orderItems.map(item => ({
-        id: item.product_id,
-        price: item.price,
-        quantity: item.quantity,
-        name: item.name,
-      })),
-      {
-        id: 'PPN_10',
-        price: Math.round(ppnAmount),
-        quantity: 1,
-        name: 'PPN 10%',
-      },
-    ],
+    item_details: itemDetails,
      credit_card: {
       secure: true,
     },
@@ -122,7 +132,6 @@ export async function POST(req: NextRequest) {
 
   try {
     const transaction = await snap.createTransaction(parameter);
-
     await supabase
       .from('orders')
       .update({
@@ -135,9 +144,7 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error('Midtrans API Error:', error);
     await supabase.from('orders').delete().eq('id', dbId);
-
     const errorMessage = error.ApiResponse?.error_messages?.[0] || error.message || 'Failed to create payment transaction';
-
     return NextResponse.json({
       error: 'Failed to create transaction',
       details: errorMessage
