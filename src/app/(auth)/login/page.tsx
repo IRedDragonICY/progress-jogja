@@ -4,7 +4,7 @@ import React, { useState, useCallback, useEffect, Suspense } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { supabase, verifyAndCleanSession, clearInvalidCookies } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import * as Form from '@radix-ui/react-form';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Separator from '@radix-ui/react-separator';
@@ -36,118 +36,77 @@ function LoginContent() {
   const [forgotEmail, setForgotEmail] = useState('');
   const [isSendingReset, setIsSendingReset] = useState(false);
   const [resetStatus, setResetStatus] = useState<{ type: 'idle' | 'success' | 'error'; message: string }>({ type: 'idle', message: '' });
-  const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const checkSessionAndParams = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const redirectTo = searchParams.get('redirect_to') || '/';
+        router.replace(redirectTo);
+        return;
+      }
+
+      const message = searchParams.get('message');
+      const error = searchParams.get('error');
+
+      if (message) {
+        setStatus({ type: error ? 'error' : 'success', message });
+      }
+
+      setIsLoading(false);
+    };
+
+    checkSessionAndParams();
+  }, [router, searchParams]);
 
   const handleLogin = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
     setStatus({ type: 'idle', message: '' });
 
-    try {
-      clearInvalidCookies();
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password
+    });
 
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password
-      });
-
-      if (error) {
-        console.error('Login error:', error);
-
-        let errorMessage = 'Gagal masuk';
-
-        if (error.message.includes('Invalid login credentials')) {
-          errorMessage = 'Email atau password salah';
-        } else if (error.message.includes('Email not confirmed')) {
-          errorMessage = 'Email belum dikonfirmasi. Silakan periksa email Anda.';
-        } else if (error.message.includes('invalid') || error.message.includes('expired')) {
-          errorMessage = 'Session telah berakhir. Silakan coba lagi.';
-          clearInvalidCookies();
-        } else {
-          errorMessage = `Gagal masuk: ${error.message}`;
-        }
-
-        setStatus({ type: 'error', message: errorMessage });
-      } else if (data.user) {
-        const { user: verifiedUser, error: verifyError } = await verifyAndCleanSession();
-
-        if (verifyError) {
-          setStatus({ type: 'error', message: 'Login berhasil tetapi session tidak valid. Silakan coba lagi.' });
-          return;
-        }
-
-        setStatus({ type: 'success', message: 'Berhasil masuk! Mengalihkan...' });
-
-        const redirectTo = searchParams.get('redirect_to') || '/';
-        router.push(redirectTo);
+    if (error) {
+      console.error('Login error:', error);
+      let errorMessage = 'Gagal masuk. Silakan periksa kredensial Anda.';
+      if (error.message.includes('Invalid login credentials')) {
+        errorMessage = 'Email atau kata sandi salah.';
+      } else if (error.message.includes('Email not confirmed')) {
+        errorMessage = 'Email belum dikonfirmasi. Silakan periksa email Anda.';
+      } else {
+        errorMessage = error.message;
       }
-    } catch (err) {
-      console.error('Unexpected login error:', err);
-      clearInvalidCookies();
-      setStatus({ type: 'error', message: `Terjadi kesalahan: ${(err as Error).message}` });
-    } finally {
-      setIsSubmitting(false);
+      setStatus({ type: 'error', message: errorMessage });
+    } else if (data.user) {
+      setStatus({ type: 'success', message: 'Berhasil masuk! Mengalihkan...' });
+      const redirectTo = searchParams.get('redirect_to') || '/';
+      router.push(redirectTo);
     }
+    setIsSubmitting(false);
   }, [email, password, router, searchParams]);
 
   const handleForgotPassword = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); setIsSendingReset(true); setResetStatus({ type: 'idle', message: '' });
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim(), { redirectTo: `${window.location.origin}/reset-password`, });
-      if (error) { setResetStatus({ type: 'error', message: `Kesalahan: ${error.message}` });
-      } else {
-        setResetStatus({ type: 'success', message: 'Email pengaturan ulang kata sandi terkirim!' });
-        setTimeout(() => { setForgotPasswordOpen(false); setForgotEmail(''); setResetStatus({ type: 'idle', message: '' }); }, 2000);
-      }
-    } catch (err) { setResetStatus({ type: 'error', message: `Kesalahan tak terduga: ${(err as Error).message}` });
-    } finally { setIsSendingReset(false); }
+    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim(), { redirectTo: `${window.location.origin}/reset-password`, });
+    if (error) { setResetStatus({ type: 'error', message: `Kesalahan: ${error.message}` });
+    } else {
+      setResetStatus({ type: 'success', message: 'Email pengaturan ulang kata sandi terkirim!' });
+      setTimeout(() => { setForgotPasswordOpen(false); setForgotEmail(''); setResetStatus({ type: 'idle', message: '' }); }, 2000);
+    }
+    setIsSendingReset(false);
   }, [forgotEmail]);
 
-  useEffect(() => {
-    const checkSessionAndParams = async () => {
-      try {
-        const errorParam = searchParams.get('error');
-        const messageParam = searchParams.get('message');
-
-        if (errorParam || messageParam) {
-          let message = messageParam || 'Terjadi kesalahan';
-
-          if (errorParam === 'auth_error') {
-            message = 'Gagal konfirmasi email. Silakan coba lagi.';
-          } else if (errorParam === 'unexpected_error') {
-            message = 'Terjadi kesalahan tak terduga. Silakan coba masuk lagi.';
-          }
-
-          setStatus({
-            type: errorParam ? 'error' : 'success',
-            message
-          });
-        }
-
-        const { user, error } = await verifyAndCleanSession();
-
-        if (user && !error) {
-          const redirectTo = searchParams.get('redirect_to') || '/';
-          router.replace(redirectTo);
-        }
-      } catch (error) {
-        console.error('Error checking session:', error);
-        clearInvalidCookies();
-      } finally {
-        setIsCheckingSession(false);
-      }
-    };
-
-    checkSessionAndParams();
-  }, [searchParams, router]);
-
-  if (isCheckingSession) {
+  if (isLoading) {
     return (
       <div className="relative w-full max-w-md z-10">
         <div className="bg-gray-900/80 backdrop-blur-md rounded-3xl border border-gray-700/50 shadow-2xl shadow-black/50 p-8">
           <div className="flex items-center justify-center space-x-2">
             <ArrowPathIcon className="w-5 h-5 text-red-400 animate-spin" />
-            <span className="text-white">Memeriksa session...</span>
+            <span className="text-white">Memuat...</span>
           </div>
         </div>
       </div>
