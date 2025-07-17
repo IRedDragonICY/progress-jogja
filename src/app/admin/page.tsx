@@ -11,10 +11,13 @@ import {
   adminUpdateFullUserProfile,
   adminDeleteUserProfile,
   adminCreateUser,
-  getCurrentMonthRevenue
+  getCurrentMonthRevenue,
+  getOrders,
+  updateOrderStatus,
+  deleteOrder,
 } from "@/lib/supabase";
 import type { UserWithProfile, Profile, NewUserPayload } from "@/types/supabase";
-import type { Product, ProductType, ProductDraft, OrganizationProfileData, StorageUsageData } from "@/types/supabase";
+import type { Product, ProductType, ProductDraft, OrganizationProfileData, StorageUsageData, Order, OrderStatus } from "@/types/supabase";
 import AdminProductForm from "@/components/AdminProductForm";
 import { AdminSidebar, type AdminTab } from "@/components/admin/AdminSidebar";
 import { DashboardHome } from "@/components/admin/DashboardHome";
@@ -61,6 +64,7 @@ export default function AdminPage() {
   const [storageUsage, setStorageUsage] = useState<StorageUsageData | null>(null);
   const [allUsers, setAllUsers] = useState<Profile[]>([]);
   const [monthlyRevenue, setMonthlyRevenue] = useState(0);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [showProductFormDialog, setShowProductFormDialog] = useState(false);
   const [formInitialData, setFormInitialData] = useState<Partial<ProductFormData> | undefined>(undefined);
   const [activeDraftIdForForm, setActiveDraftIdForForm] = useState<string | undefined>(undefined);
@@ -85,8 +89,8 @@ export default function AdminPage() {
     setIsDataLoading(true);
     setNetworkError(null);
     try {
-      const [productsData, typesData, draftsData, profileData, storageData, allUsersData, monthlyRevenueData] = await Promise.all([
-        getProducts(force), getProductTypes(force), getUserDrafts(userId, force), getOrganizationProfile(force), getStorageUsage(force), getAllUsersWithProfiles(force), getCurrentMonthRevenue()
+      const [productsData, typesData, draftsData, profileData, storageData, allUsersData, monthlyRevenueData, ordersData] = await Promise.all([
+        getProducts(force), getProductTypes(force), getUserDrafts(userId, force), getOrganizationProfile(force), getStorageUsage(force), getAllUsersWithProfiles(force), getCurrentMonthRevenue(), getOrders()
       ]);
       setProducts(productsData);
       setProductTypes(typesData);
@@ -95,6 +99,7 @@ export default function AdminPage() {
       setStorageUsage(storageData);
       setAllUsers(allUsersData);
       setMonthlyRevenue(monthlyRevenueData);
+      setOrders(ordersData);
     } catch (err: unknown) {
       setNetworkError(`Gagal memuat data: ${(err as Error).message}`);
     } finally {
@@ -373,6 +378,32 @@ export default function AdminPage() {
   }, [products, searchTerm]);
   const LoadingSpinner = () => (<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-400"></div>);
 
+  const handleUpdateOrderStatus = async (orderId: string, status: OrderStatus, provider?: string, trackingNumber?: string) => {
+      setIsProcessing(true);
+      try {
+        await updateOrderStatus(orderId, status, provider, trackingNumber);
+        await loadAllAdminData(userProfile!.user.id, true);
+        showToast('Status pesanan berhasil diperbarui!');
+      } catch (error: unknown) {
+        showToast((error as Error).message, 'error');
+      } finally {
+        setIsProcessing(false);
+      }
+  };
+
+  const handleDeleteOrder = async (orderId: string) => {
+      setIsProcessing(true);
+      try {
+        await deleteOrder(orderId);
+        await loadAllAdminData(userProfile!.user.id, true);
+        showToast('Pesanan berhasil dihapus!');
+      } catch (error: unknown) {
+        showToast((error as Error).message, 'error');
+      } finally {
+        setIsProcessing(false);
+      }
+  };
+
   if (loading) {
     return (<div
         className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800">
@@ -399,7 +430,13 @@ export default function AdminPage() {
                             onDeleteType={handleDeleteProductType} onUpdateType={handleUpdateProductType}
                             searchTerm={searchTerm} onSearchChange={setSearchTerm} activeSubMenu={activeSubMenu}/>;
       case 'transactions':
-        return <TransactionsTab/>;
+        return <TransactionsTab
+                orders={orders}
+                isDataLoading={isDataLoading}
+                onUpdateStatus={handleUpdateOrderStatus}
+                onDeleteOrder={handleDeleteOrder}
+                activeSubMenu={activeSubMenu}
+               />;
       case 'profile':
         return <ProfileTab organizationProfile={organizationProfile} onProfileSave={handleProfileSave}
                            isProfileSaving={isProfileSaving} isDataLoading={isDataLoading}

@@ -294,6 +294,14 @@ export const updateOrderStatus = async (orderId: string, status: OrderStatus, pr
     return data;
 };
 
+export const deleteOrder = async (orderId: string): Promise<void> => {
+    const { error } = await supabase.from('orders').delete().eq('id', orderId);
+    if (error) {
+        console.error("Error deleting order:", error);
+        throw error;
+    }
+};
+
 export const createReview = async (reviewData: Omit<Review, 'id' | 'created_at'>): Promise<Review> => {
     const { data, error } = await supabase.from('reviews').insert(reviewData).select().single();
     if (error) throw error;
