@@ -8,6 +8,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO public, anon
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO public, anon, authenticated;
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 CREATE OR REPLACE FUNCTION public.handle_updated_at()
 RETURNS TRIGGER AS $$
@@ -163,7 +164,7 @@ AS $$
 BEGIN
   UPDATE auth.users
   SET
-    raw_app_meta_data = raw_app_meta_data || jsonb_build_object('role', new.role)
+    raw_app_meta_data = COALESCE(raw_app_meta_data, '{}'::jsonb) || jsonb_build_object('role', new.role)
   WHERE
     id = new.id;
   RETURN new;
@@ -186,7 +187,7 @@ ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
 
 CREATE OR REPLACE FUNCTION is_admin()
 RETURNS BOOLEAN AS $$
-  SELECT auth.jwt() ->> 'role' = 'admin';
+  SELECT auth.jwt() -> 'app_metadata' ->> 'role' = 'admin';
 $$ LANGUAGE sql STABLE;
 
 CREATE POLICY "Users can view all profiles" ON public.profiles FOR SELECT USING (true);
@@ -244,6 +245,89 @@ AS $$
     (SELECT COALESCE(SUM((metadata->>'size')::bigint), 0) FROM storage.objects WHERE bucket_id = 'progress-jogja-bucket') AS storage(size);
 $$;
 GRANT EXECUTE ON FUNCTION public.get_project_usage() TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.admin_update_user(p_user_id uuid, p_updates jsonb)
+RETURNS TABLE (j jsonb)
+LANGUAGE plpgsql
+SECURITY DEFINER SET search_path = public
+AS $$
+BEGIN
+  IF NOT is_admin() THEN
+    RAISE EXCEPTION 'admin_update_user: permission denied';
+  END IF;
+
+  UPDATE public.profiles
+  SET
+    full_name = COALESCE(p_updates->>'full_name', full_name),
+    avatar_url = COALESCE(p_updates->>'avatar_url', avatar_url),
+    addresses = COALESCE((p_updates->'addresses')::jsonb, addresses),
+    role = COALESCE(p_updates->>'role', role)
+  WHERE
+    id = p_user_id;
+
+  RETURN QUERY SELECT to_jsonb(t) FROM profiles t WHERE t.id = p_user_id;
+END;
+$$;
+GRANT EXECUTE ON FUNCTION public.admin_update_user(uuid, jsonb) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.admin_delete_user(p_user_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  deleted_user_id TEXT;
+BEGIN
+  IF NOT is_admin() THEN
+    RAISE EXCEPTION 'admin_delete_user: permission denied';
+  END IF;
+
+  DELETE FROM auth.users WHERE id = p_user_id;
+
+  GET DIAGNOSTICS deleted_user_id = ROW_COUNT;
+
+  IF deleted_user_id = '1' THEN
+    RETURN jsonb_build_object('success', true, 'message', 'User deleted successfully.');
+  ELSE
+    RETURN jsonb_build_object('success', false, 'message', 'User not found or could not be deleted.');
+  END IF;
+
+EXCEPTION
+  WHEN OTHERS THEN
+    RAISE WARNING 'Error in admin_delete_user: %', SQLERRM;
+    RETURN jsonb_build_object('success', false, 'error', SQLERRM);
+END;
+$$;
+GRANT EXECUTE ON FUNCTION public.admin_delete_user(uuid) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.get_all_users_with_email()
+RETURNS jsonb
+LANGUAGE sql
+SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT
+    CASE
+      WHEN is_admin() THEN
+        (
+          SELECT COALESCE(jsonb_agg(
+            jsonb_build_object(
+              'id', u.id,
+              'email', u.email,
+              'full_name', p.full_name,
+              'avatar_url', p.avatar_url,
+              'role', p.role,
+              'addresses', p.addresses,
+              'updated_at', p.updated_at
+            ) ORDER BY p.updated_at DESC
+          ), '[]'::jsonb)
+          FROM auth.users u
+          LEFT JOIN public.profiles p ON u.id = p.id
+        )
+      ELSE
+        '[]'::jsonb
+    END
+$$;
+GRANT EXECUTE ON FUNCTION public.get_all_users_with_email() TO authenticated;
 
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES ('progress-jogja-bucket', 'progress-jogja-bucket', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/gif', 'image/webp'])

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Konfirmasi Akun - Progress Jogja</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            background-color: #f8fafc;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .header {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            padding: 40px 30px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+        .logo {
+            width: 120px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background-color: #ffffff;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            padding: 8px;
+        }
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: center;
+        }
+        .header h1 {
+            color: #ffffff;
+            font-size: 28px;
+            font-weight: 700;
+            margin: 0 0 8px 0;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .header p {
+            color: #fecaca;
+            font-size: 16px;
+            margin: 0;
+        }
+        .content {
+            padding: 40px 30px;
+            background-color: #ffffff;
+        }
+        .greeting {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+            margin: 0 0 20px 0;
+        }
+        .message {
+            font-size: 16px;
+            color: #4b5563;
+            margin: 0 0 30px 0;
+            line-height: 1.7;
+        }
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            color: #ffffff;
+            text-decoration: none;
+            padding: 16px 32px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            text-align: center;
+            box-shadow: 0 10px 15px -3px rgba(220, 38, 38, 0.1), 0 4px 6px -2px rgba(220, 38, 38, 0.05);
+            transition: all 0.3s ease;
+            margin: 20px 0;
+            border: none;
+        }
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(220, 38, 38, 0.1), 0 10px 10px -5px rgba(220, 38, 38, 0.04);
+        }
+        .alternative-link {
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 16px;
+            margin: 20px 0;
+            font-size: 14px;
+            color: #6b7280;
+            word-break: break-all;
+        }
+        .security-notice {
+            background-color: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 16px;
+            margin: 30px 0;
+            border-radius: 4px;
+        }
+        .security-notice h3 {
+            color: #92400e;
+            font-size: 16px;
+            margin: 0 0 8px 0;
+            font-weight: 600;
+        }
+        .security-notice p {
+            color: #a16207;
+            font-size: 14px;
+            margin: 0;
+        }
+        .footer {
+            background-color: #1f2937;
+            color: #9ca3af;
+            padding: 30px;
+            text-align: center;
+            font-size: 14px;
+        }
+        .footer h4 {
+            color: #ffffff;
+            margin: 0 0 16px 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .footer p {
+            margin: 8px 0;
+            line-height: 1.5;
+        }
+        .footer a {
+            color: #ef4444;
+            text-decoration: none;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        .social-links {
+            margin: 20px 0;
+        }
+        .social-links a {
+            display: inline-block;
+            margin: 0 8px;
+            color: #6b7280;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .divider {
+            height: 1px;
+            background-color: #e5e7eb;
+            margin: 30px 0;
+        }
+        @media (max-width: 600px) {
+            .container {
+                margin: 0 10px;
+            }
+            .header, .content, .footer {
+                padding: 20px;
+            }
+            .header h1 {
+                font-size: 24px;
+            }
+            .cta-button {
+                display: block;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">
+                <img src="https://progress-jogja.vercel.app/progressjogja-logo.webp" alt="Progress Jogja Logo">
+            </div>
+            <h1>Progress Jogja</h1>
+            <p>Memberdayakan UMKM Jogja Menuju Kemajuan Bersama</p>
+        </div>
+        
+        <div class="content">
+            <div class="greeting">
+                Selamat datang! 👋
+            </div>
+            
+            <div class="message">
+                Terima kasih telah bergabung dengan <strong>Progress Jogja</strong>. Untuk melengkapi proses pendaftaran dan mengaktifkan akun Anda, silakan konfirmasi alamat email Anda dengan mengklik tombol di bawah ini.
+            </div>
+            
+            <div style="text-align: center;">
+                <a href="{{ .ConfirmationURL }}" class="cta-button">
+                    ✓ Konfirmasi Email Saya
+                </a>
+            </div>
+            
+            <div class="message">
+                Dengan mengkonfirmasi email Anda, Anda akan mendapatkan akses penuh ke:
+            </div>
+            
+            <ul style="color: #4b5563; font-size: 16px; margin: 20px 0;">
+                <li>Katalog produk UMKM Jogja terlengkap</li>
+                <li>Sistem pemesanan yang mudah dan aman</li>
+                <li>Profil pengguna yang dapat disesuaikan</li>
+                <li>Notifikasi produk dan penawaran terbaru</li>
+            </ul>
+            
+            <div class="security-notice">
+                <h3>🔒 Keamanan Akun</h3>
+                <p>Jika Anda tidak membuat akun di Progress Jogja, abaikan email ini. Link konfirmasi ini akan kedaluwarsa dalam 24 jam untuk menjaga keamanan akun Anda.</p>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="message">
+                Jika tombol di atas tidak berfungsi, Anda dapat menyalin dan menempel link berikut ke browser Anda:
+            </div>
+            
+            <div class="alternative-link">
+                {{ .ConfirmationURL }}
+            </div>
+        </div>
+        
+        <div class="footer">
+            <h4>Progress Jogja</h4>
+            <p>Jalan Mawar I/207 Perumnas Condongcatur</p>
+            <p>Depok, Sleman, Yogyakarta 55283</p>
+            <p>Email: <a href="mailto:ProgressJogjaOfficial@gmail.com">ProgressJogjaOfficial@gmail.com</a></p>
+            <p>Telepon: <a href="tel:+6281215737328">+62 812 1573 7328</a></p>
+            
+            <div class="social-links">
+                <a href="https://instagram.com/progress.jogja">Instagram</a>
+                <a href="https://progress-jogja.vercel.app">Website</a>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <p style="font-size: 12px; color: #6b7280; margin-top: 20px;">
+                Email ini dikirim secara otomatis oleh sistem Progress Jogja. Mohon jangan membalas email ini.
+            </p>
+        </div>
+    </div>
+</body>
+</html> 

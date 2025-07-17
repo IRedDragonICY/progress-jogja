@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import * as Tabs from '@radix-ui/react-tabs';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Select from '@radix-ui/react-select';
 import { getOrders, updateOrderStatus } from '@/lib/supabase';
@@ -134,7 +133,7 @@ export function TransactionsTab() {
   if (loading) return <div className="p-8">Loading transactions...</div>;
 
   return (
-    <Tabs.Content value="transactions" className="p-8">
+    <div className="p-8">
       <h2 className="text-2xl font-bold mb-4">All Transactions</h2>
       <div className="bg-slate-800/40 rounded-xl border border-slate-700/50">
         <table className="w-full">
@@ -166,6 +165,6 @@ export function TransactionsTab() {
         onClose={() => setSelectedOrder(null)}
         onStatusUpdate={fetchOrders}
       />
-    </Tabs.Content>
+    </div>
   );
 }

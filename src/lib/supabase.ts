@@ -1,5 +1,5 @@
 import { createBrowserClient } from '@supabase/ssr';
-import { Product, ProductType, ProductDraft, ProductFormData, StoreLinkItem, OrganizationProfileData, Profile, StorageUsageData, Order, OrderStatus, Review } from '@/types/supabase';
+import { Product, ProductType, ProductDraft, ProductFormData, StoreLinkItem, OrganizationProfileData, Profile, StorageUsageData, Order, OrderStatus, Review, NewUserPayload } from '@/types/supabase';
 import { v4 as uuidv4 } from 'uuid';
 
 export const supabase = createBrowserClient(
@@ -89,20 +89,30 @@ const convertImageToWebP = (file: File): Promise<File> => {
 
 export const updateUserProfile = async (
   userId: string,
-  updates: Partial<Omit<Profile, 'id' | 'role'>>
+  updates: Partial<Omit<Profile, 'id'>>
 ) => {
-  const { data, error } = await supabase
+  const { error: updateError } = await supabase
     .from('profiles')
-    .update({ ...updates, updated_at: new Date().toISOString() })
+    .update(updates)
+    .eq('id', userId);
+
+  if (updateError) {
+    console.error('Error updating profile:', updateError);
+    throw updateError;
+  }
+
+  const { data: refetchedProfile, error: selectError } = await supabase
+    .from('profiles')
+    .select('*')
     .eq('id', userId)
-    .select()
     .single();
 
-  if (error) {
-    console.error('Error updating profile:', error);
-    throw error;
+  if (selectError) {
+    console.error('Error re-fetching profile after update:', selectError);
+    throw selectError;
   }
-  return data;
+
+  return refetchedProfile;
 };
 
 export const uploadAvatar = async (userId: string, file: File): Promise<string> => {
@@ -141,6 +151,7 @@ const CACHE_KEYS = {
   USER_DRAFTS: 'cache_user_drafts',
   ORGANIZATION_PROFILE: `cache_org_profile_${ORG_PROFILE_ID_CONST}`,
   STORAGE_USAGE: 'cache_storage_usage',
+  ALL_USERS_PROFILES: 'cache_all_users_profiles',
 } as const;
 
 interface CachedData<T> { data: T; timestamp: number; }
@@ -184,9 +195,59 @@ const uploadFileToStorage = async (file: File, folder: string): Promise<string> 
 export const uploadProductImage = (file: File): Promise<string> => uploadFileToStorage(file, 'product_images');
 export const uploadPartnerLogo = (file: File): Promise<string> => uploadFileToStorage(file, 'partner_logos');
 export const getOrganizationProfile = async (force = false): Promise<OrganizationProfileData | null> => { const k = CACHE_KEYS.ORGANIZATION_PROFILE; if (!force) { const c = CacheManager.get<OrganizationProfileData>(k); if (c) return c; } return fetchWithRetry(async () => { const { data, error } = await supabase.from('organization_profile').select('*').eq('id', ORG_PROFILE_ID_CONST).maybeSingle(); if (error) { console.error('Profile fetch error:', error); throw error; } const r = data ? data as OrganizationProfileData : null; if (r) { CacheManager.set(k, r); } return r;});};
-export const upsertOrganizationProfile = async (profileData: Partial<OrganizationProfileData>): Promise<OrganizationProfileData> => { const d = { ...profileData, id: ORG_PROFILE_ID_CONST, updated_at: new Date().toISOString(), addresses: profileData.addresses || [], phone_numbers: profileData.phone_numbers || [], social_media_links: profileData.social_media_links || [], organizational_structure: profileData.organizational_structure || [], partnerships: profileData.partnerships || []}; const r = await fetchWithRetry(async () => { const { data, error } = await supabase.from('organization_profile').upsert(d, { onConflict: 'id', ignoreDuplicates: false }).select().single(); if (error) { console.error('Profile upsert error:', error); throw error; } return data as OrganizationProfileData; }); CacheManager.invalidate(CACHE_KEYS.ORGANIZATION_PROFILE); return r;};
+export const upsertOrganizationProfile = async (profileData: Partial<OrganizationProfileData>): Promise<OrganizationProfileData> => { const d = { ...profileData, id: ORG_PROFILE_ID_CONST, addresses: profileData.addresses || [], phone_numbers: profileData.phone_numbers || [], social_media_links: profileData.social_media_links || [], organizational_structure: profileData.organizational_structure || [], partnerships: profileData.partnerships || []}; const r = await fetchWithRetry(async () => { const { data, error } = await supabase.from('organization_profile').upsert(d, { onConflict: 'id', ignoreDuplicates: false }).select().single(); if (error) { console.error('Profile upsert error:', error); throw error; } return data as OrganizationProfileData; }); CacheManager.invalidate(CACHE_KEYS.ORGANIZATION_PROFILE); return r;};
 export const getStorageUsage = async (force = false): Promise<StorageUsageData | null> => { if (!force) { const c = CacheManager.get<StorageUsageData>(CACHE_KEYS.STORAGE_USAGE); if (c) return c; } try { const { data: rawData, error } = await supabase.rpc('get_project_usage'); if (error) throw error; const total_project_limit_bytes = 5 * 1024 * 1024 * 1024; const total_used_bytes = rawData.total_used_bytes || 0; const result: StorageUsageData = { database_size_bytes: rawData.database_size_bytes || 0, storage_size_bytes: rawData.storage_size_bytes || 0, total_used_bytes: total_used_bytes, total_project_limit_bytes: total_project_limit_bytes, available_size_bytes: total_project_limit_bytes - total_used_bytes, used_percentage: total_project_limit_bytes > 0 ? (total_used_bytes / total_project_limit_bytes) * 100 : 0, }; CacheManager.set(CACHE_KEYS.STORAGE_USAGE, result); return result; } catch (err) { console.error("Error fetching storage usage via RPC:", err); return null; } };
 export const getProductImageUrl = (filename: string): string => { if (filename.startsWith('http://') || filename.startsWith('https://')) { return filename; } if (filename.startsWith('/')) { return filename; } const { data } = supabase.storage.from('progress-jogja-bucket').getPublicUrl(`produk/${filename}`); return data.publicUrl; };
+export const getAllUsersWithProfiles = async (force = false): Promise<Profile[]> => { if (!force) { const c = CacheManager.get<Profile[]>(CACHE_KEYS.ALL_USERS_PROFILES); if (c) return c; } return fetchWithRetry(async () => { const { data, error } = await supabase.rpc('get_all_users_with_email'); if (error) { console.error("Error fetching all user profiles via RPC:", error); throw error; } const r = (data as Profile[]) || []; CacheManager.set(CACHE_KEYS.ALL_USERS_PROFILES, r); return r; }); };
+
+export const adminUpdateFullUserProfile = async (userId: string, updates: Partial<Profile>): Promise<Profile> => {
+    const { data, error } = await supabase.rpc('admin_update_user', {
+        p_user_id: userId,
+        p_updates: updates
+    });
+
+    if (error || !data || (data.length > 0 && data[0].j?.error)) {
+        const errorMessage = error?.message || (data && data[0].j?.error) || 'Failed to update user profile via RPC.';
+        console.error(`Error during admin profile update for user ${userId}:`, errorMessage);
+        throw new Error(errorMessage);
+    }
+
+    CacheManager.invalidate(CACHE_KEYS.ALL_USERS_PROFILES);
+    return data[0].j as Profile;
+};
+
+export const adminDeleteUserProfile = async (userId: string): Promise<void> => {
+    const { data, error } = await supabase.rpc('admin_delete_user', {
+        p_user_id: userId
+    });
+
+    if (error || !data || !data.success) {
+        const errorMessage = error?.message || data?.error || 'Failed to delete user via RPC.';
+        console.error(`Error deleting profile for user ${userId}:`, errorMessage);
+        throw new Error(errorMessage);
+    }
+
+    CacheManager.invalidate(CACHE_KEYS.ALL_USERS_PROFILES);
+};
+
+export const adminCreateUser = async (payload: NewUserPayload): Promise<Profile> => {
+    const response = await fetch('/api/admin/create-user', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+        throw new Error(result.error || 'Failed to create user via API.');
+    }
+
+    CacheManager.invalidate(CACHE_KEYS.ALL_USERS_PROFILES);
+    return result as Profile;
+};
 
 export const getOrders = async (userId?: string): Promise<Order[]> => {
     let query = supabase.from('orders').select('*').order('created_at', { ascending: false });
@@ -199,6 +260,27 @@ export const getOrders = async (userId?: string): Promise<Order[]> => {
         throw error;
     }
     return data || [];
+};
+
+export const getCurrentMonthRevenue = async (): Promise<number> => {
+    const today = new Date();
+    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
+    const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+
+    const { data, error } = await supabase
+        .from('orders')
+        .select('total_amount')
+        .in('status', ['paid', 'completed'])
+        .gte('created_at', firstDayOfMonth)
+        .lt('created_at', nextMonth.toISOString());
+
+    if (error) {
+        console.error("Error fetching current month revenue:", error);
+        throw error;
+    }
+
+    const totalRevenue = data?.reduce((sum, order) => sum + order.total_amount, 0) || 0;
+    return totalRevenue;
 };
 
 export const updateOrderStatus = async (orderId: string, status: OrderStatus, provider?: string, trackingNumber?: string): Promise<Order> => {

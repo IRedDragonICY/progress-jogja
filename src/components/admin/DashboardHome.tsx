@@ -1,5 +1,4 @@
 import React from 'react';
-import * as Tabs from '@radix-ui/react-tabs';
 import * as Dialog from '@radix-ui/react-dialog';
 import {
   CubeIcon,
@@ -9,7 +8,10 @@ import {
   PlusIcon,
   DocumentTextIcon,
   PencilIcon,
-  BuildingStorefrontIcon
+  BuildingStorefrontIcon,
+  HomeIcon,
+  UsersIcon,
+  BanknotesIcon
 } from '@heroicons/react/24/outline';
 import type { Product, ProductType, ProductDraft, StorageUsageData } from "@/types/supabase";
 import { StorageUsageWidget } from '@/components/admin/StorageUsageWidget';
@@ -19,6 +21,8 @@ interface DashboardHomeProps {
   productTypes: ProductType[];
   userDrafts: ProductDraft[];
   storageUsage: StorageUsageData | null;
+  totalUsers: number;
+  monthlyRevenue: number;
   setShowDraftsDialog: (show: boolean) => void;
   onCreateNewProduct: () => void;
   onEditDraft: (draft: ProductDraft) => void;
@@ -31,13 +35,15 @@ const StatsCard = ({
   value,
   icon: Icon,
   gradient,
-  description
+  description,
+  isCurrency = false
 }: {
   title: string;
   value: number;
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   gradient: string;
   description?: string;
+  isCurrency?: boolean;
 }) => (
   <div className="group relative bg-gradient-to-br from-slate-800/60 to-slate-900/60 backdrop-blur-xl rounded-2xl p-6 border border-slate-700/50 hover:border-slate-600/50 transition-all duration-300 hover:shadow-xl hover:shadow-slate-900/30 hover:-translate-y-1">
     <div className="flex items-center justify-between">
@@ -46,7 +52,7 @@ const StatsCard = ({
           {title}
         </p>
         <p className={`text-3xl font-bold bg-gradient-to-r ${gradient} bg-clip-text text-transparent`}>
-          {value}
+          {isCurrency ? `Rp${value.toLocaleString('id-ID')}` : value}
         </p>
         {description && (
           <p className="text-xs text-slate-500">{description}</p>
@@ -95,6 +101,8 @@ export function DashboardHome({
   productTypes,
   userDrafts,
   storageUsage,
+  totalUsers,
+  monthlyRevenue,
   setShowDraftsDialog,
   onCreateNewProduct,
   onEditDraft,
@@ -105,7 +113,7 @@ export function DashboardHome({
   const unpublishedProductsCount = products.filter(p => !p.is_published).length;
 
   return (
-    <Tabs.Content value="home" className="p-8">
+    <div className="p-8">
       <div className="flex justify-between items-center mb-8">
         <div>
           <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent mb-2">
@@ -113,29 +121,30 @@ export function DashboardHome({
           </h2>
           <p className="text-slate-400">Pantau produk dan kelola toko Anda</p>
         </div>
-
-        <Dialog.Trigger asChild>
-            <button
-                onClick={() => setShowDraftsDialog(true)}
-                className="relative px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold rounded-2xl transition-all duration-300 shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:-translate-y-0.5 flex items-center gap-2.5 border border-amber-400/20">
-              <DocumentTextIcon className="w-5 h-5" />
-              <span>Draf</span>
-              {userDrafts.length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
-                  {userDrafts.length}
-                </span>
-              )}
-            </button>
-        </Dialog.Trigger>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <StatsCard
           title="Total Produk"
           value={products.length}
           icon={CubeIcon}
           gradient="from-blue-400 to-blue-600"
           description="Semua produk dalam sistem"
+        />
+        <StatsCard
+          title="Total Pengguna"
+          value={totalUsers}
+          icon={UsersIcon}
+          gradient="from-cyan-400 to-cyan-600"
+          description="Semua pengguna terdaftar"
+        />
+        <StatsCard
+          title="Pendapatan Bulan Ini"
+          value={monthlyRevenue}
+          icon={BanknotesIcon}
+          gradient="from-lime-400 to-lime-600"
+          description="Status 'Paid' & 'Completed'"
+          isCurrency={true}
         />
         <StatsCard
           title="Diterbitkan"
@@ -196,6 +205,12 @@ export function DashboardHome({
                 Kelola Tipe
               </QuickActionButton>
               <QuickActionButton
+                onClick={() => window.open('/', '_blank')}
+                icon={HomeIcon}
+              >
+                Lihat Halaman Utama
+              </QuickActionButton>
+              <QuickActionButton
                 onClick={() => onSetActiveTab('profile')}
                 icon={BuildingStorefrontIcon}
               >
@@ -254,6 +269,6 @@ export function DashboardHome({
           </div>
         </div>
       </div>
-    </Tabs.Content>
+    </div>
   );
 }

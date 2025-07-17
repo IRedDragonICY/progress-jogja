@@ -16,6 +16,7 @@ export interface Address {
 export interface Profile {
   id: string;
   full_name: string | null;
+  email?: string;
   avatar_url: string | null;
   addresses: Address[];
   role: 'admin' | 'user';
@@ -205,4 +206,11 @@ export interface Review {
   rating: number;
   comment: string | null;
   created_at: string;
+}
+
+export interface NewUserPayload {
+  email: string;
+  password: string;
+  full_name: string;
+  role: 'user' | 'admin';
 }

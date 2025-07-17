@@ -1,16 +1,17 @@
 'use client';
 
-import React, { useState, useCallback, memo } from 'react';
+import React, { useState, useCallback, useEffect, Suspense } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import * as Form from '@radix-ui/react-form';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Separator from '@radix-ui/react-separator';
 import {
   XMarkIcon, EyeIcon, EyeSlashIcon, EnvelopeIcon, LockClosedIcon,
-  ShieldCheckIcon, ExclamationTriangleIcon, CheckCircleIcon
+  ShieldCheckIcon, ExclamationTriangleIcon, CheckCircleIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline';
 
 const AlertMessage = ({ type, message }: { type: 'idle' | 'success' | 'error'; message: string; }) => {
@@ -23,9 +24,9 @@ const AlertMessage = ({ type, message }: { type: 'idle' | 'success' | 'error'; m
   return (<div className={`${baseClasses} ${colorClasses}`}><Icon className={`w-5 h-5 ${iconColor} mt-0.5 flex-shrink-0`} /><div className="text-sm leading-relaxed">{message}</div></div>);
 };
 
-
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -35,32 +36,82 @@ export default function LoginPage() {
   const [forgotEmail, setForgotEmail] = useState('');
   const [isSendingReset, setIsSendingReset] = useState(false);
   const [resetStatus, setResetStatus] = useState<{ type: 'idle' | 'success' | 'error'; message: string }>({ type: 'idle', message: '' });
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const checkSessionAndParams = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const redirectTo = searchParams.get('redirect_to') || '/';
+        router.replace(redirectTo);
+        return;
+      }
+
+      const message = searchParams.get('message');
+      const error = searchParams.get('error');
+
+      if (message) {
+        setStatus({ type: error ? 'error' : 'success', message });
+      }
+
+      setIsLoading(false);
+    };
+
+    checkSessionAndParams();
+  }, [router, searchParams]);
 
   const handleLogin = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); setIsSubmitting(true); setStatus({ type: 'idle', message: '' });
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-      if (error) { setStatus({ type: 'error', message: `Gagal masuk: ${error.message}` });
-      } else if (data.user) {
-        setStatus({ type: 'success', message: 'Berhasil masuk! Mengalihkan...' });
-        router.push('/');
+    e.preventDefault();
+    setIsSubmitting(true);
+    setStatus({ type: 'idle', message: '' });
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password
+    });
+
+    if (error) {
+      console.error('Login error:', error);
+      let errorMessage = 'Gagal masuk. Silakan periksa kredensial Anda.';
+      if (error.message.includes('Invalid login credentials')) {
+        errorMessage = 'Email atau kata sandi salah.';
+      } else if (error.message.includes('Email not confirmed')) {
+        errorMessage = 'Email belum dikonfirmasi. Silakan periksa email Anda.';
+      } else {
+        errorMessage = error.message;
       }
-    } catch (err) { setStatus({ type: 'error', message: `Terjadi kesalahan: ${(err as Error).message}` });
-    } finally { setIsSubmitting(false); }
-  }, [email, password, router]);
+      setStatus({ type: 'error', message: errorMessage });
+    } else if (data.user) {
+      setStatus({ type: 'success', message: 'Berhasil masuk! Mengalihkan...' });
+      const redirectTo = searchParams.get('redirect_to') || '/';
+      router.push(redirectTo);
+    }
+    setIsSubmitting(false);
+  }, [email, password, router, searchParams]);
 
   const handleForgotPassword = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); setIsSendingReset(true); setResetStatus({ type: 'idle', message: '' });
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim(), { redirectTo: `${window.location.origin}/reset-password`, });
-      if (error) { setResetStatus({ type: 'error', message: `Kesalahan: ${error.message}` });
-      } else {
-        setResetStatus({ type: 'success', message: 'Email pengaturan ulang kata sandi terkirim!' });
-        setTimeout(() => { setForgotPasswordOpen(false); setForgotEmail(''); setResetStatus({ type: 'idle', message: '' }); }, 2000);
-      }
-    } catch (err) { setResetStatus({ type: 'error', message: `Kesalahan tak terduga: ${(err as Error).message}` });
-    } finally { setIsSendingReset(false); }
+    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim(), { redirectTo: `${window.location.origin}/reset-password`, });
+    if (error) { setResetStatus({ type: 'error', message: `Kesalahan: ${error.message}` });
+    } else {
+      setResetStatus({ type: 'success', message: 'Email pengaturan ulang kata sandi terkirim!' });
+      setTimeout(() => { setForgotPasswordOpen(false); setForgotEmail(''); setResetStatus({ type: 'idle', message: '' }); }, 2000);
+    }
+    setIsSendingReset(false);
   }, [forgotEmail]);
+
+  if (isLoading) {
+    return (
+      <div className="relative w-full max-w-md z-10">
+        <div className="bg-gray-900/80 backdrop-blur-md rounded-3xl border border-gray-700/50 shadow-2xl shadow-black/50 p-8">
+          <div className="flex items-center justify-center space-x-2">
+            <ArrowPathIcon className="w-5 h-5 text-red-400 animate-spin" />
+            <span className="text-white">Memuat...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative w-full max-w-md z-10">
@@ -81,5 +132,22 @@ export default function LoginPage() {
       </div>
       <Dialog.Root open={forgotPasswordOpen} onOpenChange={setForgotPasswordOpen}><Dialog.Portal><Dialog.Overlay className="bg-black/80 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50" /><Dialog.Content className="fixed left-[50%] top-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%] bg-gray-900/95 backdrop-blur-xl border border-gray-700/50 rounded-3xl shadow-2xl shadow-black/50 p-8 duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"><div className="space-y-6"><div className="text-center space-y-3"><div className="mx-auto w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center"><EnvelopeIcon className="w-6 h-6 text-white" /></div><Dialog.Title className="text-2xl font-bold text-white">Atur Ulang Kata Sandi</Dialog.Title><Dialog.Description className="text-gray-400 text-sm">Masukkan email Anda untuk menerima tautan atur ulang.</Dialog.Description></div><AlertMessage type={resetStatus.type} message={resetStatus.message} /><Form.Root onSubmit={handleForgotPassword} className="space-y-4"><Form.Field name="reset-email" className="space-y-2"><Form.Label className="block text-sm font-semibold text-blue-400">Alamat Email</Form.Label><div className="relative"><EnvelopeIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" /><Form.Control asChild><input type="email" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} required className="w-full bg-gray-800/60 border border-gray-600/50 rounded-xl pl-12 pr-4 py-3 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-300" placeholder="Masukkan alamat email Anda" /></Form.Control></div><Form.Message match="valueMissing" className="text-red-400 text-sm">Alamat email wajib diisi</Form.Message><Form.Message match="typeMismatch" className="text-red-400 text-sm">Email tidak valid</Form.Message></Form.Field><div className="flex gap-3 pt-2"><Dialog.Close asChild><button type="button" className="flex-1 px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-xl transition-all duration-200">Batal</button></Dialog.Close><Form.Submit asChild><button type="submit" disabled={isSendingReset} className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">{isSendingReset ? (<><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Mengirim...</>) : ('Kirim Tautan')}</button></Form.Submit></div></Form.Root></div><Dialog.Close asChild><button className="absolute right-4 top-4 p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-800/50 rounded-lg transition-colors"><XMarkIcon className="w-5 h-5" /></button></Dialog.Close></Dialog.Content></Dialog.Portal></Dialog.Root>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="relative w-full max-w-md z-10">
+        <div className="bg-gray-900/80 backdrop-blur-md rounded-3xl border border-gray-700/50 shadow-2xl shadow-black/50 p-8">
+          <div className="flex items-center justify-center space-x-2">
+            <ArrowPathIcon className="w-5 h-5 text-red-400 animate-spin" />
+            <span className="text-white">Memuat...</span>
+          </div>
+        </div>
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   );
 }
