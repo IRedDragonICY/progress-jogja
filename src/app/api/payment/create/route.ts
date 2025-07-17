@@ -6,16 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type { CartItem, OrderItem } from '@/types/supabase';
 
 export async function POST(req: NextRequest) {
-  // ===================================================================
-  // VVVV --- DEBUGGING LOGS --- VVVV
-  console.log("\n--- [API /api/payment/create] INITIATING PAYMENT ---");
-  console.log("1. SERVER-SIDE CHECK: Is Production? ->", process.env.MIDTRANS_IS_PRODUCTION);
-  console.log("2. SERVER-SIDE CHECK: Server Key Used ->", process.env.MIDTRANS_SERVER_KEY);
-  console.log("---------------------------------------------------\n");
-  // ===================================================================
-
-  const cookieStore = await cookies();
-
+  const cookieStore = cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -28,16 +19,12 @@ export async function POST(req: NextRequest) {
           try {
             cookieStore.set({ name, value, ...options });
           } catch (error) {
-            // The `set` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing user sessions.
           }
         },
         remove(name: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value: '', ...options });
           } catch (error) {
-            // The `delete` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing user sessions.
           }
         },
       },
@@ -58,8 +45,8 @@ export async function POST(req: NextRequest) {
 
   const dbId = uuidv4();
   const displayId = `PJ-${uuidv4().slice(0, 13).toUpperCase()}`;
-  let subtotalAmount = 0;
 
+  let subtotalAmount = 0;
   const orderItems: OrderItem[] = cartItems.map((item: CartItem) => {
     const itemTotal = (item.products?.price || 0) * item.quantity;
     subtotalAmount += itemTotal;
@@ -72,9 +59,8 @@ export async function POST(req: NextRequest) {
     };
   });
 
-  // Calculate PPN 10% and total
   const ppnAmount = subtotalAmount * 0.1;
-  const totalAmount = subtotalAmount + ppnAmount;
+  const totalAmount = Math.round(subtotalAmount + ppnAmount);
 
   const { error: orderError } = await supabase
     .from('orders')
@@ -97,7 +83,7 @@ export async function POST(req: NextRequest) {
 
   if (orderError) {
     console.error('Error creating order in Supabase:', orderError);
-    return NextResponse.json({ error: 'Could not create order' }, { status: 500 });
+    return NextResponse.json({ error: 'Could not create order', details: orderError.message }, { status: 500 });
   }
 
   const parameter = {
@@ -123,8 +109,8 @@ export async function POST(req: NextRequest) {
         name: item.name,
       })),
       {
-        id: 'PPN',
-        price: ppnAmount,
+        id: 'PPN_10',
+        price: Math.round(ppnAmount),
         quantity: 1,
         name: 'PPN 10%',
       },
@@ -147,8 +133,14 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(transaction);
   } catch (error: any) {
-    console.error('Midtrans API Error:', error.message);
+    console.error('Midtrans API Error:', error);
     await supabase.from('orders').delete().eq('id', dbId);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+
+    const errorMessage = error.ApiResponse?.error_messages?.[0] || error.message || 'Failed to create payment transaction';
+
+    return NextResponse.json({
+      error: 'Failed to create transaction',
+      details: errorMessage
+    }, { status: 500 });
   }
 }
