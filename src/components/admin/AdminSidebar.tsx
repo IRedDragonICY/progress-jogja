@@ -31,7 +31,7 @@ import {
   HandRaisedIcon,
 } from '@heroicons/react/24/outline';
 
-export type AdminTab = 'home' | 'products' | 'profile' | 'transactions';
+export type AdminTab = 'home' | 'products' | 'profile' | 'transactions' | 'users';
 
 interface MenuItem {
   id: string;
@@ -89,6 +89,7 @@ const MENU_CONFIG: MenuItem[] = [
       { id: 'profile-events', label: 'Event Internasional', icon: GlobeAltIcon },
       { id: 'profile-settings', label: 'Pengaturan', icon: Cog6ToothIcon },
   ]},
+  { id: 'users', label: 'Pengguna', icon: UsersIcon },
 ];
 
 export function AdminSidebar({
@@ -127,6 +128,7 @@ export function AdminSidebar({
       'products': 'products', 'products-overview': 'products', 'products-manage': 'products', 'products-add': 'products', 'products-categories': 'products', 'products-drafts': 'products',
       'transactions': 'transactions', 'transactions-overview': 'transactions', 'transactions-pending': 'transactions', 'transactions-completed': 'transactions', 'transactions-failed': 'transactions', 'transactions-revenue': 'transactions',
       'profile': 'profile', 'profile-general': 'profile', 'profile-address': 'profile', 'profile-contact': 'profile', 'profile-social': 'profile', 'profile-vision': 'profile', 'profile-structure': 'profile', 'profile-partnerships': 'profile', 'profile-achievements': 'profile', 'profile-events': 'profile', 'profile-settings': 'profile',
+      'users': 'users',
     };
 
     const targetTab = tabMapping[item.id] || 'home';

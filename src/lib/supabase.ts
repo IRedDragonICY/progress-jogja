@@ -20,56 +20,44 @@ export const signOut = async () => {
     window.location.href = '/';
 };
 
-/**
- * Utility function untuk membersihkan cookies yang invalid atau corrupt
- */
 export const clearInvalidCookies = () => {
-    // Ambil semua cookies
     const cookies = document.cookie.split(';');
-    
-    // Hapus semua cookies yang berkaitan dengan Supabase
+
     cookies.forEach(cookie => {
         const cookieName = cookie.split('=')[0].trim();
         if (cookieName.startsWith('sb-')) {
-            // Hapus cookie dengan mengatur expires ke masa lalu
             document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname}`;
             document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
         }
     });
 };
 
-/**
- * Utility function untuk memverifikasi dan membersihkan session yang invalid
- */
 export const verifyAndCleanSession = async () => {
     try {
         const { data: { user }, error } = await supabase.auth.getUser();
-        
+
         if (error) {
             console.warn('Session verification failed:', error.message);
-            
-            // Jika error disebabkan oleh cookies yang invalid, bersihkan cookies
-            if (error.message.includes('invalid') || 
-                error.message.includes('expired') || 
+
+            if (error.message.includes('invalid') ||
+                error.message.includes('expired') ||
                 error.message.includes('malformed') ||
                 error.message.includes('JWT')) {
-                
+
                 clearInvalidCookies();
-                
-                // Sign out untuk memastikan semua session dibersihkan
+
                 await supabase.auth.signOut();
-                
+
                 return { user: null, error: 'Session cleaned due to invalid cookies' };
             }
-            
+
             return { user: null, error: error.message };
         }
-        
-        // Jika user valid, verifikasi email confirmation
+
         if (user && !user.email_confirmed_at) {
             return { user: null, error: 'Email not confirmed' };
         }
-        
+
         return { user, error: null };
     } catch (error) {
         console.error('Unexpected error during session verification:', error);
@@ -79,31 +67,26 @@ export const verifyAndCleanSession = async () => {
     }
 };
 
-/**
- * Utility function untuk recovery session yang bermasalah
- */
 export const recoverSession = async () => {
     try {
-        // Coba refresh session
         const { data: { session }, error } = await supabase.auth.refreshSession();
-        
+
         if (error || !session) {
             console.warn('Session recovery failed, clearing cookies');
             clearInvalidCookies();
             await supabase.auth.signOut();
             return false;
         }
-        
-        // Verifikasi user setelah refresh
+
         const { data: { user }, error: userError } = await supabase.auth.getUser();
-        
+
         if (userError || !user) {
             console.warn('User verification failed after session refresh');
             clearInvalidCookies();
             await supabase.auth.signOut();
             return false;
         }
-        
+
         return true;
     } catch (error) {
         console.error('Session recovery failed:', error);
@@ -182,20 +165,30 @@ const convertImageToWebP = (file: File): Promise<File> => {
 
 export const updateUserProfile = async (
   userId: string,
-  updates: Partial<Omit<Profile, 'id' | 'role'>>
+  updates: Partial<Omit<Profile, 'id'>>
 ) => {
-  const { data, error } = await supabase
+  const { error: updateError } = await supabase
     .from('profiles')
-    .update({ ...updates, updated_at: new Date().toISOString() })
+    .update(updates)
+    .eq('id', userId);
+
+  if (updateError) {
+    console.error('Error updating profile:', updateError);
+    throw updateError;
+  }
+
+  const { data: refetchedProfile, error: selectError } = await supabase
+    .from('profiles')
+    .select('*')
     .eq('id', userId)
-    .select()
     .single();
 
-  if (error) {
-    console.error('Error updating profile:', error);
-    throw error;
+  if (selectError) {
+    console.error('Error re-fetching profile after update:', selectError);
+    throw selectError;
   }
-  return data;
+
+  return refetchedProfile;
 };
 
 export const uploadAvatar = async (userId: string, file: File): Promise<string> => {
@@ -234,6 +227,7 @@ const CACHE_KEYS = {
   USER_DRAFTS: 'cache_user_drafts',
   ORGANIZATION_PROFILE: `cache_org_profile_${ORG_PROFILE_ID_CONST}`,
   STORAGE_USAGE: 'cache_storage_usage',
+  ALL_USERS_PROFILES: 'cache_all_users_profiles',
 } as const;
 
 interface CachedData<T> { data: T; timestamp: number; }
@@ -277,9 +271,40 @@ const uploadFileToStorage = async (file: File, folder: string): Promise<string> 
 export const uploadProductImage = (file: File): Promise<string> => uploadFileToStorage(file, 'product_images');
 export const uploadPartnerLogo = (file: File): Promise<string> => uploadFileToStorage(file, 'partner_logos');
 export const getOrganizationProfile = async (force = false): Promise<OrganizationProfileData | null> => { const k = CACHE_KEYS.ORGANIZATION_PROFILE; if (!force) { const c = CacheManager.get<OrganizationProfileData>(k); if (c) return c; } return fetchWithRetry(async () => { const { data, error } = await supabase.from('organization_profile').select('*').eq('id', ORG_PROFILE_ID_CONST).maybeSingle(); if (error) { console.error('Profile fetch error:', error); throw error; } const r = data ? data as OrganizationProfileData : null; if (r) { CacheManager.set(k, r); } return r;});};
-export const upsertOrganizationProfile = async (profileData: Partial<OrganizationProfileData>): Promise<OrganizationProfileData> => { const d = { ...profileData, id: ORG_PROFILE_ID_CONST, updated_at: new Date().toISOString(), addresses: profileData.addresses || [], phone_numbers: profileData.phone_numbers || [], social_media_links: profileData.social_media_links || [], organizational_structure: profileData.organizational_structure || [], partnerships: profileData.partnerships || []}; const r = await fetchWithRetry(async () => { const { data, error } = await supabase.from('organization_profile').upsert(d, { onConflict: 'id', ignoreDuplicates: false }).select().single(); if (error) { console.error('Profile upsert error:', error); throw error; } return data as OrganizationProfileData; }); CacheManager.invalidate(CACHE_KEYS.ORGANIZATION_PROFILE); return r;};
+export const upsertOrganizationProfile = async (profileData: Partial<OrganizationProfileData>): Promise<OrganizationProfileData> => { const d = { ...profileData, id: ORG_PROFILE_ID_CONST, addresses: profileData.addresses || [], phone_numbers: profileData.phone_numbers || [], social_media_links: profileData.social_media_links || [], organizational_structure: profileData.organizational_structure || [], partnerships: profileData.partnerships || []}; const r = await fetchWithRetry(async () => { const { data, error } = await supabase.from('organization_profile').upsert(d, { onConflict: 'id', ignoreDuplicates: false }).select().single(); if (error) { console.error('Profile upsert error:', error); throw error; } return data as OrganizationProfileData; }); CacheManager.invalidate(CACHE_KEYS.ORGANIZATION_PROFILE); return r;};
 export const getStorageUsage = async (force = false): Promise<StorageUsageData | null> => { if (!force) { const c = CacheManager.get<StorageUsageData>(CACHE_KEYS.STORAGE_USAGE); if (c) return c; } try { const { data: rawData, error } = await supabase.rpc('get_project_usage'); if (error) throw error; const total_project_limit_bytes = 5 * 1024 * 1024 * 1024; const total_used_bytes = rawData.total_used_bytes || 0; const result: StorageUsageData = { database_size_bytes: rawData.database_size_bytes || 0, storage_size_bytes: rawData.storage_size_bytes || 0, total_used_bytes: total_used_bytes, total_project_limit_bytes: total_project_limit_bytes, available_size_bytes: total_project_limit_bytes - total_used_bytes, used_percentage: total_project_limit_bytes > 0 ? (total_used_bytes / total_project_limit_bytes) * 100 : 0, }; CacheManager.set(CACHE_KEYS.STORAGE_USAGE, result); return result; } catch (err) { console.error("Error fetching storage usage via RPC:", err); return null; } };
 export const getProductImageUrl = (filename: string): string => { if (filename.startsWith('http://') || filename.startsWith('https://')) { return filename; } if (filename.startsWith('/')) { return filename; } const { data } = supabase.storage.from('progress-jogja-bucket').getPublicUrl(`produk/${filename}`); return data.publicUrl; };
+export const getAllUsersWithProfiles = async (force = false): Promise<Profile[]> => { if (!force) { const c = CacheManager.get<Profile[]>(CACHE_KEYS.ALL_USERS_PROFILES); if (c) return c; } return fetchWithRetry(async () => { const { data, error } = await supabase.rpc('get_all_users_with_email'); if (error) { console.error("Error fetching all user profiles via RPC:", error); throw error; } const r = (data as Profile[]) || []; CacheManager.set(CACHE_KEYS.ALL_USERS_PROFILES, r); return r; }); };
+
+export const adminUpdateFullUserProfile = async (userId: string, updates: Partial<Profile>): Promise<Profile> => {
+    const { data, error } = await supabase.rpc('admin_update_user', {
+        p_user_id: userId,
+        p_updates: updates
+    });
+
+    if (error || !data || (data.length > 0 && data[0].j?.error)) {
+        const errorMessage = error?.message || (data && data[0].j?.error) || 'Failed to update user profile via RPC.';
+        console.error(`Error during admin profile update for user ${userId}:`, errorMessage);
+        throw new Error(errorMessage);
+    }
+
+    CacheManager.invalidate(CACHE_KEYS.ALL_USERS_PROFILES);
+    return data[0].j as Profile;
+};
+
+export const adminDeleteUserProfile = async (userId: string): Promise<void> => {
+    const { data, error } = await supabase.rpc('admin_delete_user', {
+        p_user_id: userId
+    });
+
+    if (error || !data || !data.success) {
+        const errorMessage = error?.message || data?.error || 'Failed to delete user via RPC.';
+        console.error(`Error deleting profile for user ${userId}:`, errorMessage);
+        throw new Error(errorMessage);
+    }
+
+    CacheManager.invalidate(CACHE_KEYS.ALL_USERS_PROFILES);
+};
 
 export const getOrders = async (userId?: string): Promise<Order[]> => {
     let query = supabase.from('orders').select('*').order('created_at', { ascending: false });

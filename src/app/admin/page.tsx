@@ -7,8 +7,11 @@ import {
   createOrUpdateDraft, deleteDraft, deleteAllUserDrafts, publishDraft, ProductFormData,
   getOrganizationProfile, upsertOrganizationProfile, updateProductType, getUserWithProfile,
   getStorageUsage,
+  getAllUsersWithProfiles,
+  adminUpdateFullUserProfile,
+  adminDeleteUserProfile,
 } from "@/lib/supabase";
-import type { UserWithProfile } from "@/types/supabase";
+import type { UserWithProfile, Profile } from "@/types/supabase";
 import type { Product, ProductType, ProductDraft, OrganizationProfileData, StorageUsageData } from "@/types/supabase";
 import AdminProductForm from "@/components/AdminProductForm";
 import { AdminSidebar, type AdminTab } from "@/components/admin/AdminSidebar";
@@ -16,6 +19,7 @@ import { DashboardHome } from "@/components/admin/DashboardHome";
 import { ProductsTab } from "@/components/admin/ProductsTab";
 import { ProfileTab } from "@/components/admin/ProfileTab";
 import { TransactionsTab } from "@/components/admin/TransactionsTab";
+import { UsersTab } from "@/components/admin/UsersTab";
 import * as Dialog from '@radix-ui/react-dialog';
 import * as AlertDialog from '@radix-ui/react-alert-dialog';
 import * as Toast from '@radix-ui/react-toast';
@@ -53,6 +57,7 @@ export default function AdminPage() {
   const [userDrafts, setUserDrafts] = useState<ProductDraft[]>([]);
   const [organizationProfile, setOrganizationProfile] = useState<OrganizationProfileData | null>(null);
   const [storageUsage, setStorageUsage] = useState<StorageUsageData | null>(null);
+  const [allUsers, setAllUsers] = useState<Profile[]>([]);
   const [showProductFormDialog, setShowProductFormDialog] = useState(false);
   const [formInitialData, setFormInitialData] = useState<Partial<ProductFormData> | undefined>(undefined);
   const [activeDraftIdForForm, setActiveDraftIdForForm] = useState<string | undefined>(undefined);
@@ -74,10 +79,10 @@ export default function AdminPage() {
     if (!userId) return;
     setIsDataLoading(true); setNetworkError(null);
     try {
-      const [productsData, typesData, draftsData, profileData, storageData] = await Promise.all([
-        getProducts(force), getProductTypes(force), getUserDrafts(userId, force), getOrganizationProfile(force), getStorageUsage(force)
+      const [productsData, typesData, draftsData, profileData, storageData, allUsersData] = await Promise.all([
+        getProducts(force), getProductTypes(force), getUserDrafts(userId, force), getOrganizationProfile(force), getStorageUsage(force), getAllUsersWithProfiles(force)
       ]);
-      setProducts(productsData); setProductTypes(typesData); setUserDrafts(draftsData); setOrganizationProfile(profileData); setStorageUsage(storageData);
+      setProducts(productsData); setProductTypes(typesData); setUserDrafts(draftsData); setOrganizationProfile(profileData); setStorageUsage(storageData); setAllUsers(allUsersData);
     } catch (err: unknown) {
       setNetworkError(`Gagal memuat data: ${(err as Error).message}`);
     } finally { setIsDataLoading(false); }
@@ -110,6 +115,8 @@ export default function AdminPage() {
   const handleDeleteAllUserDraftsAction = async () => { if (!userProfile) return showToast("Kesalahan otentikasi.", 'error'); setIsProcessing(true); try { await deleteAllUserDrafts(userProfile.user.id); if (showProductFormDialog && userDrafts.some(d => d.id === activeDraftIdForForm)) { setShowProductFormDialog(false); setActiveDraftIdForForm(undefined); setFormInitialData(undefined); } setUserDrafts([]); showToast('Semua draf berhasil dihapus!'); } catch (error: unknown) { showToast(`Gagal menghapus semua draf: ${(error as Error).message}`, 'error'); } finally { setIsProcessing(false); }};
   const handleFormCancel = () => { setShowProductFormDialog(false); setActiveDraftIdForForm(undefined); setFormInitialData(undefined); };
   const handleProfileSave = async (data: OrganizationProfileData) => { setIsProfileSaving(true); try { const updatedProfile = await upsertOrganizationProfile(data); setOrganizationProfile(updatedProfile); showToast('Profil organisasi berhasil disimpan!'); } catch (error: unknown) { showToast(`Gagal menyimpan profil: ${(error as Error).message}`, 'error'); } finally { setIsProfileSaving(false); }};
+  const handleUpdateUserProfile = async (userId: string, updates: Partial<Profile>) => { setIsProcessing(true); try { await adminUpdateFullUserProfile(userId, updates); await loadAllAdminData(userProfile!.user.id, true); showToast('Profil pengguna berhasil diperbarui!'); } catch (error: unknown) { showToast(`Gagal memperbarui profil: ${(error as Error).message}`, 'error'); } finally { setIsProcessing(false); }};
+  const handleDeleteUserProfile = async (userId: string) => { setIsProcessing(true); try { await adminDeleteUserProfile(userId); await loadAllAdminData(userProfile!.user.id, true); showToast('Profil pengguna berhasil dihapus!'); } catch (error: unknown) { showToast(`Gagal menghapus profil: ${(error as Error).message}`, 'error'); } finally { setIsProcessing(false); }};
   const handleTabChange = (tab: AdminTab) => {
     if (activeTab !== tab) { setActiveSubMenu(''); }
     setActiveTab(tab);
@@ -132,6 +139,7 @@ export default function AdminPage() {
       case 'products': return <ProductsTab products={filteredProducts} userDrafts={userDrafts} setShowDraftsDialog={setShowDraftsDialog} onCreateNewProduct={handleCreateNewProduct} onEditProduct={openFormToEditMasterProduct} onDeleteProduct={handleDeleteMasterProduct} onTogglePublish={handleTogglePublish} isProcessing={isProcessing} isDataLoading={isDataLoading} productTypes={productTypes} onAddType={handleAddProductType} onDeleteType={handleDeleteProductType} onUpdateType={handleUpdateProductType} searchTerm={searchTerm} onSearchChange={setSearchTerm} activeSubMenu={activeSubMenu}/>;
       case 'transactions': return <TransactionsTab />;
       case 'profile': return <ProfileTab organizationProfile={organizationProfile} onProfileSave={handleProfileSave} isProfileSaving={isProfileSaving} isDataLoading={isDataLoading} activeSubMenu={activeSubMenu}/>;
+      case 'users': return <UsersTab users={allUsers} currentUserProfile={userProfile} onUpdateUser={handleUpdateUserProfile} onDeleteUser={handleDeleteUserProfile} isProcessing={isProcessing} isDataLoading={isDataLoading} />;
       default: return (<div className="p-8 text-center"><div className="text-slate-400 mb-4"><h2 className="text-2xl font-bold mb-2">Page Not Found</h2><p>The requested page could not be found.</p></div><button onClick={() => setActiveTab('home')} className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors">Go to Dashboard</button></div>);
     }
   };
