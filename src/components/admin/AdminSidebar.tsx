@@ -62,22 +62,22 @@ interface AdminSidebarProps {
 }
 
 const MENU_CONFIG: MenuItem[] = [
-  { id: 'home', label: 'Dashboard', icon: HomeIcon },
-  { id: 'products', label: 'Products & Inventory', icon: CubeIcon, children: [
-      { id: 'products-overview', label: 'Overview', icon: ChartBarIcon },
-      { id: 'products-manage', label: 'Manage Products', icon: ArchiveBoxIcon },
-      { id: 'products-add', label: 'Add Product', icon: PlusIcon },
-      { id: 'products-categories', label: 'Categories', icon: TagIcon },
-      { id: 'products-drafts', label: 'Drafts', icon: DocumentDuplicateIcon, badge: 3 },
+  { id: 'home', label: 'Dasbor', icon: HomeIcon },
+  { id: 'products', label: 'Produk & Inventaris', icon: CubeIcon, children: [
+      { id: 'products-overview', label: 'Ringkasan', icon: ChartBarIcon },
+      { id: 'products-manage', label: 'Kelola Produk', icon: ArchiveBoxIcon },
+      { id: 'products-add', label: 'Tambah Produk', icon: PlusIcon },
+      { id: 'products-categories', label: 'Kategori', icon: TagIcon },
+      { id: 'products-drafts', label: 'Draf', icon: DocumentDuplicateIcon, badge: 3 },
   ]},
-  { id: 'transactions', label: 'Transactions', icon: CreditCardIcon, children: [
-      { id: 'transactions-overview', label: 'Overview', icon: ChartBarIcon },
-      { id: 'transactions-pending', label: 'Pending', icon: ClockIcon, badge: 5 },
-      { id: 'transactions-completed', label: 'Completed', icon: CheckCircleIcon },
-      { id: 'transactions-failed', label: 'Failed', icon: XCircleIcon },
-      { id: 'transactions-revenue', label: 'Revenue', icon: BanknotesIcon },
+  { id: 'transactions', label: 'Transaksi', icon: CreditCardIcon, children: [
+      { id: 'transactions-overview', label: 'Ringkasan', icon: ChartBarIcon },
+      { id: 'transactions-pending', label: 'Tertunda', icon: ClockIcon, badge: 5 },
+      { id: 'transactions-completed', label: 'Selesai', icon: CheckCircleIcon },
+      { id: 'transactions-failed', label: 'Gagal', icon: XCircleIcon },
+      { id: 'transactions-revenue', label: 'Pendapatan', icon: BanknotesIcon },
   ]},
-  { id: 'profile', label: 'Organization', icon: BuildingStorefrontIcon, children: [
+  { id: 'profile', label: 'Profil Organisasi', icon: BuildingStorefrontIcon, children: [
       { id: 'profile-general', label: 'Informasi Umum', icon: InformationCircleIcon },
       { id: 'profile-address', label: 'Alamat', icon: MapPinIcon },
       { id: 'profile-contact', label: 'Kontak', icon: PhoneIcon },
@@ -87,7 +87,7 @@ const MENU_CONFIG: MenuItem[] = [
       { id: 'profile-partnerships', label: 'Kemitraan', icon: HandRaisedIcon },
       { id: 'profile-achievements', label: 'Penghargaan', icon: TrophyIcon },
       { id: 'profile-events', label: 'Event Internasional', icon: GlobeAltIcon },
-      { id: 'profile-settings', label: 'Settings', icon: Cog6ToothIcon },
+      { id: 'profile-settings', label: 'Pengaturan', icon: Cog6ToothIcon },
   ]},
 ];
 
@@ -105,10 +105,13 @@ export function AdminSidebar({
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
   useEffect(() => {
-    if (activeTab && !expandedItems.includes(activeTab)) {
-      setExpandedItems(prev => [...prev, activeTab]);
-    }
-  }, [activeTab, expandedItems]);
+    setExpandedItems(prevExpanded => {
+      if (activeTab && !prevExpanded.includes(activeTab)) {
+        return [...prevExpanded, activeTab];
+      }
+      return prevExpanded;
+    });
+  }, [activeTab]);
 
   const toggleExpanded = (itemId: string) => {
     setExpandedItems(prev =>
@@ -177,7 +180,7 @@ export function AdminSidebar({
       >
         <div className="flex-shrink-0">
           <div className="flex items-center justify-between p-4 border-b border-slate-700/50">
-            {!isCollapsed && (<div className="flex items-center gap-3"><div className="w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center"><span className="text-white font-bold text-sm">PJ</span></div><div><h2 className="text-white font-bold text-lg">Progress Jogja</h2><p className="text-slate-400 text-xs">Admin Panel</p></div></div>)}
+            {!isCollapsed && (<div className="flex items-center gap-3"><div className="w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center"><span className="text-white font-bold text-sm">PJ</span></div><div><h2 className="text-white font-bold text-lg">Progress Jogja</h2><p className="text-slate-400 text-xs">Panel Admin</p></div></div>)}
             <button onClick={onToggleCollapse} className="p-2 hover:bg-slate-700/50 rounded-xl transition-colors">{isCollapsed ? (<Bars3Icon className="w-5 h-5 text-slate-400" />) : (<XMarkIcon className="w-5 h-5 text-slate-400" />)}</button>
           </div>
           {!isCollapsed && userProfile && (
@@ -188,9 +191,9 @@ export function AdminSidebar({
           {!isCollapsed && stats && (
             <div className="p-4 border-b border-slate-700/50">
               <div className="grid grid-cols-3 gap-2">
-                <div className="text-center"><div className="text-white font-bold text-lg">{stats.totalProducts}</div><div className="text-slate-400 text-xs">Products</div></div>
-                <div className="text-center"><div className="text-white font-bold text-lg">{stats.totalTransactions}</div><div className="text-slate-400 text-xs">Sales</div></div>
-                <div className="text-center"><div className="text-white font-bold text-lg">{stats.pendingDrafts}</div><div className="text-slate-400 text-xs">Drafts</div></div>
+                <div className="text-center"><div className="text-white font-bold text-lg">{stats.totalProducts}</div><div className="text-slate-400 text-xs">Produk</div></div>
+                <div className="text-center"><div className="text-white font-bold text-lg">{stats.totalTransactions}</div><div className="text-slate-400 text-xs">Penjualan</div></div>
+                <div className="text-center"><div className="text-white font-bold text-lg">{stats.pendingDrafts}</div><div className="text-slate-400 text-xs">Draf</div></div>
               </div>
             </div>
           )}
