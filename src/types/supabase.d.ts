@@ -46,6 +46,7 @@ export interface Product {
   product_type_id: string | null;
   description: string | null;
   price: number;
+  weight: number;
   image_urls: string[];
   store_links: StoreLinkItem[];
   is_published: boolean;
@@ -62,6 +63,7 @@ export interface ProductDraft {
   product_type_id: string | null;
   description: string | null;
   price: number;
+  weight: number;
   image_urls: string[];
   store_links: StoreLinkItem[];
   created_at?: string;
@@ -196,6 +198,9 @@ export interface Order {
   midtrans_transaction_id: string | null;
   midtrans_snap_token: string | null;
   midtrans_snap_redirect_url: string | null;
+  shipping_cost: number | null;
+  shipping_service: string | null;
+  shipping_etd: string | null;
 }
 
 export interface Review {

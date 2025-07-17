@@ -41,6 +41,7 @@ CREATE TABLE public.products (
     product_type_id uuid REFERENCES public.product_types(id) ON DELETE SET NULL,
     description text,
     price decimal(10,2) DEFAULT 0 NOT NULL,
+    weight integer NOT NULL DEFAULT 100,
     image_urls jsonb DEFAULT '[]'::jsonb NOT NULL,
     store_links jsonb DEFAULT '[]'::jsonb NOT NULL,
     is_published boolean DEFAULT false NOT NULL,
@@ -56,6 +57,7 @@ CREATE TABLE public.product_drafts (
     product_type_id uuid REFERENCES public.product_types(id) ON DELETE SET NULL,
     description text,
     price decimal(10,2) DEFAULT 0 NOT NULL,
+    weight integer NOT NULL DEFAULT 100,
     image_urls jsonb DEFAULT '[]'::jsonb NOT NULL,
     store_links jsonb DEFAULT '[]'::jsonb NOT NULL,
     created_at timestamptz DEFAULT now() NOT NULL,
@@ -119,6 +121,9 @@ CREATE TABLE public.orders (
     midtrans_transaction_id text,
     midtrans_snap_token text,
     midtrans_snap_redirect_url text,
+    shipping_cost decimal(10,2),
+    shipping_service text,
+    shipping_etd text,
     created_at timestamptz DEFAULT now() NOT NULL,
     updated_at timestamptz DEFAULT now() NOT NULL
 );
