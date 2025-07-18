@@ -29,9 +29,10 @@ import {
   GlobeAltIcon,
   InformationCircleIcon,
   HandRaisedIcon,
+  DocumentChartBarIcon,
 } from '@heroicons/react/24/outline';
 
-export type AdminTab = 'home' | 'products' | 'profile' | 'transactions' | 'users';
+export type AdminTab = 'home' | 'products' | 'profile' | 'transactions' | 'users' | 'reports';
 
 interface MenuItem {
   id: string;
@@ -84,6 +85,7 @@ const MENU_CONFIG: MenuItem[] = [
       { id: 'profile-settings', label: 'Pengaturan', icon: Cog6ToothIcon },
   ]},
   { id: 'users', label: 'Pengguna', icon: UsersIcon },
+  { id: 'reports', label: 'Laporan', icon: DocumentChartBarIcon },
 ];
 
 export function AdminSidebar({
@@ -122,6 +124,7 @@ export function AdminSidebar({
       'transactions': 'transactions', 'transactions-overview': 'transactions', 'transactions-pending': 'transactions', 'transactions-completed': 'transactions', 'transactions-failed': 'transactions', 'transactions-revenue': 'transactions',
       'profile': 'profile', 'profile-general': 'profile', 'profile-address': 'profile', 'profile-contact': 'profile', 'profile-social': 'profile', 'profile-vision': 'profile', 'profile-structure': 'profile', 'profile-partnerships': 'profile', 'profile-achievements': 'profile', 'profile-events': 'profile', 'profile-settings': 'profile',
       'users': 'users',
+      'reports': 'reports',
     };
 
     const targetTab = tabMapping[item.id] || 'home';

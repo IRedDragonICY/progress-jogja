@@ -334,6 +334,120 @@ AS $$
 $$;
 GRANT EXECUTE ON FUNCTION public.get_all_users_with_email() TO authenticated;
 
+CREATE OR REPLACE FUNCTION public.get_monthly_revenue_summary(
+    num_months integer DEFAULT 6
+)
+RETURNS TABLE(month_start date, total_revenue numeric)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    IF NOT is_admin() THEN
+        RAISE EXCEPTION 'Permission denied to access revenue summary.';
+    END IF;
+
+    RETURN QUERY
+    WITH month_series AS (
+        SELECT date_trunc('month', generate_series(
+            date_trunc('month', now()) - (num_months - 1) * interval '1 month',
+            date_trunc('month', now()),
+            '1 month'
+        ))::date AS month_start
+    )
+    SELECT
+        ms.month_start,
+        COALESCE(SUM(o.total_amount), 0) AS total_revenue
+    FROM
+        month_series ms
+    LEFT JOIN
+        public.orders o ON date_trunc('month', o.created_at)::date = ms.month_start
+                       AND o.status IN ('paid', 'completed')
+    GROUP BY
+        ms.month_start
+    ORDER BY
+        ms.month_start;
+END;
+$$;
+GRANT EXECUTE ON FUNCTION public.get_monthly_revenue_summary(integer) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.get_full_export_data(report_type text)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    result jsonb;
+BEGIN
+    IF NOT is_admin() THEN
+        RAISE EXCEPTION 'Permission denied to export data.';
+    END IF;
+
+    IF report_type = 'financial' THEN
+        SELECT COALESCE(jsonb_agg(t), '[]'::jsonb) INTO result FROM (
+            SELECT
+                o.display_id AS "ID Pesanan",
+                o.created_at AS "Tanggal",
+                p.full_name AS "Pelanggan",
+                u.email AS "Email Pelanggan",
+                o.total_amount AS "Total",
+                o.status AS "Status",
+                o.shipping_service AS "Layanan Pengiriman",
+                o.shipping_cost AS "Biaya Pengiriman",
+                CASE
+                    WHEN jsonb_array_length(o.order_items) > 0 THEN (o.order_items -> 0 ->> 'name')
+                    ELSE NULL
+                END AS "Produk Utama"
+            FROM public.orders o
+            LEFT JOIN auth.users u ON o.user_id = u.id
+            LEFT JOIN public.profiles p ON o.user_id = p.id
+            ORDER BY o.created_at DESC
+        ) t;
+    ELSIF report_type = 'users' THEN
+        SELECT COALESCE(jsonb_agg(t), '[]'::jsonb) INTO result FROM (
+            SELECT
+                p.id,
+                p.full_name AS "Nama Lengkap",
+                u.email AS "Email",
+                p.role AS "Peran",
+                (SELECT COUNT(*) FROM public.orders WHERE user_id = p.id) AS "Jumlah Pesanan",
+                p.updated_at AS "Terakhir Diperbarui"
+            FROM public.profiles p
+            JOIN auth.users u ON p.id = u.id
+            ORDER BY p.updated_at DESC
+        ) t;
+    ELSIF report_type = 'products' THEN
+        SELECT COALESCE(jsonb_agg(t), '[]'::jsonb) INTO result FROM (
+            SELECT
+                p.id,
+                p.name AS "Nama Produk",
+                pt.name AS "Kategori",
+                p.price AS "Harga",
+                p.is_published AS "Diterbitkan",
+                p.created_at AS "Tanggal Dibuat",
+                p.updated_at AS "Tanggal Diperbarui"
+            FROM public.products p
+            LEFT JOIN public.product_types pt ON p.product_type_id = pt.id
+            ORDER BY p.created_at DESC
+        ) t;
+    ELSIF report_type = 'organization_profile' THEN
+        SELECT to_jsonb(op) INTO result FROM public.organization_profile op LIMIT 1;
+    ELSE
+        result := '{"error": "Invalid report type"}'::jsonb;
+    END IF;
+
+    IF result IS NULL THEN
+      IF report_type = 'organization_profile' THEN
+        RETURN '{}'::jsonb;
+      ELSE
+        RETURN '[]'::jsonb;
+      END IF;
+    END IF;
+
+    RETURN result;
+END;
+$$;
+GRANT EXECUTE ON FUNCTION public.get_full_export_data(text) TO authenticated;
+
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES ('progress-jogja-bucket', 'progress-jogja-bucket', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
 ON CONFLICT (id) DO UPDATE SET
