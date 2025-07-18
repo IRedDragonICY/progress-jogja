@@ -308,4 +308,23 @@ export const createReview = async (reviewData: Omit<Review, 'id' | 'created_at'>
     return data;
 };
 
+export const getMonthlyRevenueSummary = async (numMonths: number = 6): Promise<{ month_start: string; total_revenue: number }[]> => {
+    const { data, error } = await supabase.rpc('get_monthly_revenue_summary', { num_months: numMonths });
+    if (error) {
+        console.error("Error fetching monthly revenue summary:", error);
+        throw error;
+    }
+    return data;
+};
+
+export const getFullExportData = async (reportType: 'financial' | 'users' | 'products' | 'organization_profile'): Promise<any> => {
+    const { data, error } = await supabase.rpc('get_full_export_data', { report_type: reportType });
+    if (error) {
+        console.error(`Error fetching export data for ${reportType}:`, error);
+        throw error;
+    }
+    return data;
+};
+
+
 export type { ProductFormData };

@@ -25,6 +25,7 @@ import { ProductsTab } from "@/components/admin/ProductsTab";
 import { ProfileTab } from "@/components/admin/ProfileTab";
 import { TransactionsTab } from "@/components/admin/TransactionsTab";
 import { UsersTab } from "@/components/admin/UsersTab";
+import { ReportsTab } from "@/components/admin/ReportsTab";
 import * as Dialog from '@radix-ui/react-dialog';
 import * as AlertDialog from '@radix-ui/react-alert-dialog';
 import * as Toast from '@radix-ui/react-toast';
@@ -445,6 +446,8 @@ export default function AdminPage() {
         return <UsersTab users={allUsers} currentUserProfile={userProfile} onUpdateUser={handleUpdateUserProfile}
                          onDeleteUser={handleDeleteUserProfile} onCreateUser={handleAdminCreateUser}
                          isProcessing={isProcessing} isDataLoading={isDataLoading}/>;
+      case 'reports':
+        return <ReportsTab />;
       default:
         return (<div className="p-8 text-center">
           <div className="text-slate-400 mb-4"><h2 className="text-2xl font-bold mb-2">Page Not Found</h2><p>The
