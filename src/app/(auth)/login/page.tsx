@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, Suspense } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -29,13 +29,13 @@ const LoadingSkeleton = () => (
     <div className="bg-gray-900/80 backdrop-blur-md rounded-3xl border border-gray-700/50 shadow-2xl shadow-black/50 p-8">
       <div className="flex items-center justify-center space-x-2">
         <ArrowPathIcon className="w-5 h-5 text-red-400 animate-spin" />
-        <span className="text-white">Memverifikasi sesi...</span>
+        <span className="text-white">Memuat...</span>
       </div>
     </div>
   </div>
 );
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
@@ -131,5 +131,13 @@ export default function LoginPage() {
       </div>
       <Dialog.Root open={forgotPasswordOpen} onOpenChange={setForgotPasswordOpen}><Dialog.Portal><Dialog.Overlay className="bg-black/80 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50" /><Dialog.Content className="fixed left-[50%] top-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%] bg-gray-900/95 backdrop-blur-xl border border-gray-700/50 rounded-3xl shadow-2xl shadow-black/50 p-8 duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"><div className="space-y-6"><div className="text-center space-y-3"><div className="mx-auto w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center"><EnvelopeIcon className="w-6 h-6 text-white" /></div><Dialog.Title className="text-2xl font-bold text-white">Atur Ulang Kata Sandi</Dialog.Title><Dialog.Description className="text-gray-400 text-sm">Masukkan email Anda untuk menerima tautan atur ulang.</Dialog.Description></div>{resetStatus.type && <AlertMessage type={resetStatus.type} message={resetStatus.message} />}<Form.Root onSubmit={handleForgotPassword} className="space-y-4"><Form.Field name="reset-email" className="space-y-2"><Form.Label className="block text-sm font-semibold text-blue-400">Alamat Email</Form.Label><div className="relative"><EnvelopeIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" /><Form.Control asChild><input type="email" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} required className="w-full bg-gray-800/60 border border-gray-600/50 rounded-xl pl-12 pr-4 py-3 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-300" placeholder="Masukkan alamat email Anda" /></Form.Control></div><Form.Message match="valueMissing" className="text-red-400 text-sm">Alamat email wajib diisi</Form.Message><Form.Message match="typeMismatch" className="text-red-400 text-sm">Email tidak valid</Form.Message></Form.Field><div className="flex gap-3 pt-2"><Dialog.Close asChild><button type="button" className="flex-1 px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-xl transition-all duration-200">Batal</button></Dialog.Close><Form.Submit asChild><button type="submit" disabled={isSendingReset} className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">{isSendingReset ? (<><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Mengirim...</>) : ('Kirim Tautan')}</button></Form.Submit></div></Form.Root></div><Dialog.Close asChild><button className="absolute right-4 top-4 p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-800/50 rounded-lg transition-colors"><XMarkIcon className="w-5 h-5" /></button></Dialog.Close></Dialog.Content></Dialog.Portal></Dialog.Root>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoadingSkeleton />}>
+      <LoginContent />
+    </Suspense>
   );
 }
