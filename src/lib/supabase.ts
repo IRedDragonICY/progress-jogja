@@ -17,7 +17,6 @@ export const signOut = async () => {
         console.error("Supabase signOut error:", error);
         throw error;
     }
-    window.location.href = '/';
 };
 
 export const getUserWithProfile = async () => {

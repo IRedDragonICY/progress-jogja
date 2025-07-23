@@ -422,8 +422,6 @@ export default function ProfilePage() {
   const handleLogout = async () => {
     try {
       await signOut();
-      window.dispatchEvent(new Event('storage'));
-      router.push('/');
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -457,7 +455,6 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
         <div className="flex items-center justify-between mb-12 pt-8">
           <div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-red-400 to-pink-600 bg-clip-text text-transparent">
@@ -473,7 +470,6 @@ export default function ProfilePage() {
           </Link>
         </div>
 
-        {/* Profile Info Card */}
         <div className="bg-gray-900/50 backdrop-blur-md rounded-3xl border border-gray-700/50 p-8 mb-8">
           <div className="flex items-center gap-6">
             <div className="w-24 h-24 rounded-full bg-gray-800 flex items-center justify-center overflow-hidden border-2 border-gray-700">
@@ -494,7 +490,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Settings Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <EditProfileSection profileData={profileData} onProfileUpdated={handleProfileUpdated} />
           <AddressSection profileData={profileData} onProfileUpdated={handleProfileUpdated} />
@@ -502,7 +497,6 @@ export default function ProfilePage() {
           <OrderHistorySection userId={profileData.user.id} />
         </div>
 
-        {/* Danger Zone */}
         <div className="mb-8">
           <h3 className="text-xl font-bold text-red-300 mb-4 flex items-center gap-2">
             <ExclamationTriangleIcon className="w-6 h-6" />
@@ -511,7 +505,6 @@ export default function ProfilePage() {
           <DeleteAccountSection />
         </div>
 
-        {/* Logout */}
         <div className="text-center">
           <button
             onClick={handleLogout}
@@ -524,4 +517,4 @@ export default function ProfilePage() {
       </div>
     </div>
   );
-} 
+}
