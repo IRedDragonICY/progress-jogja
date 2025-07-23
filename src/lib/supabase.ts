@@ -12,17 +12,11 @@ const debugLog = (...args: unknown[]) => DEBUG_MODE && console.log('[SupabaseCli
 export const ORG_PROFILE_ID_CONST = 'e7a9f2d8-5b8c-4f1e-8d0f-6c7a3b9e1d2f';
 
 export const signOut = async () => {
-  try {
     const { error } = await supabase.auth.signOut();
     if (error) {
-      console.error("Supabase signOut error:", error);
-      throw error;
+        console.error("Supabase signOut error:", error);
+        throw error;
     }
-    window.location.href = '/login';
-  } catch (error) {
-    console.error("Failed to sign out:", error);
-    window.location.href = '/login';
-  }
 };
 
 export const getUserWithProfile = async () => {
