@@ -40,8 +40,9 @@ function LoginContent() {
 
   useEffect(() => {
     const checkSessionAndParams = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (session) {
         const redirectTo = searchParams.get('redirect_to') || '/';
         router.replace(redirectTo);
         return;
