@@ -189,7 +189,14 @@ const VisionMissionSection = ({ data, isLoading }: { data: OrganizationData, isL
 };
 
 const AwardsSection = ({ data, isLoading }: { data: OrganizationData, isLoading: boolean }) => {
-  const awardsToShow = data.achievements.length > 0 ? data.achievements : [ { id: '1', title: 'Juara Wirausaha Muda Mandiri', issuer: 'Bank Mandiri', year: 2019, image_url: '/penghargaan1.jpg' }, { id: '2', title: 'Penghargaan Industri Kreatif', issuer: 'Kementerian Pariwisata', year: 2021, image_url: '/penghargaan2.jpg' } ];
+  const achievementsWithImages = data.achievements.filter(ach => ach.image_url);
+  const awardsToShow = data.achievements.length > 0
+    ? achievementsWithImages
+    : [
+        { id: '1', title: 'Juara Wirausaha Muda Mandiri', issuer: 'Bank Mandiri', year: 2019, image_url: '/penghargaan1.jpg' },
+        { id: '2', title: 'Penghargaan Industri Kreatif', issuer: 'Kementerian Pariwisata', year: 2021, image_url: '/penghargaan2.jpg' }
+      ];
+
   return (
     <Section id="penghargaan" className="bg-black">
       <div className="text-center mb-16"><h2 className="text-4xl md:text-5xl font-bold text-white mb-4">Penghargaan Kami</h2><p className="text-gray-400 max-w-2xl mx-auto">Pengakuan atas dedikasi dan inovasi kami dalam industri pangan.</p></div>
@@ -227,24 +234,24 @@ const InternationalEventsSection = ({ data, isLoading }: { data: OrganizationDat
       {isLoading ? (<div className="text-center py-20"><div className="animate-spin rounded-full h-16 w-16 border-4 border-red-500 border-t-transparent mx-auto"></div><p className="mt-6 text-gray-400 text-lg">Memuat event...</p></div>) : (
         <div className="relative overflow-hidden">
           <div className="absolute inset-0 z-20 pointer-events-none before:absolute before:left-0 before:top-0 before:w-1/4 before:h-full before:bg-gradient-to-r before:from-black before:to-transparent before:filter before:blur-3 after:absolute after:right-0 after:top-0 after:w-1/4 after:h-full after:bg-gradient-to-l after:from-black after:to-transparent after:filter after:blur-3"></div>
-          <motion.div 
+          <motion.div
             className="flex"
-            animate={{ 
-              x: ['0%', '-50%'], 
-              transition: { 
-                ease: 'linear', 
-                duration: 30, 
-                repeat: Infinity 
-              } 
+            animate={{
+              x: ['0%', '-50%'],
+              transition: {
+                ease: 'linear',
+                duration: 30,
+                repeat: Infinity
+              }
             }}
           >
             {[...eventsToShow, ...eventsToShow].map((event, index) => (
               <div key={index} className="flex-shrink-0 mx-4" style={{ minWidth: '20%' }}>
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.9 }} 
-                  whileInView={{ opacity: 1, scale: 1 }} 
-                  viewport={{ once: true }} 
-                  transition={{ duration: 0.5 }} 
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5 }}
                   className="group relative aspect-[3/4] rounded-2xl overflow-hidden shadow-2xl shadow-black/30"
                 >
                   <Image src={event.image_url || '/placeholder.jpg'} alt={`Event di ${event.country}`} fill className="object-cover transition-transform duration-500 group-hover:scale-110" />
@@ -296,7 +303,7 @@ const LocationsSection = ({ data, isLoading }: { data: OrganizationData, isLoadi
       notes: 'Kantor & Produksi Utama'
     },
     {
-      id: '2', 
+      id: '2',
       text: 'Dusun Petir RT 01, Srimartani, Piyungan, Bantul, Yogyakarta',
       latitude: -7.848,
       longitude: 110.457,
@@ -310,7 +317,7 @@ const LocationsSection = ({ data, isLoading }: { data: OrganizationData, isLoadi
         <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-red-400 to-red-600 bg-clip-text text-transparent mb-4">Lokasi Kami</h2>
         <p className="text-gray-400 max-w-2xl mx-auto">Temukan kantor dan fasilitas produksi Progress Jogja di berbagai lokasi strategis.</p>
       </div>
-      
+
       {isLoading ? (
         <div className="text-center py-20">
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-red-500 border-t-transparent mx-auto"></div>
@@ -318,7 +325,6 @@ const LocationsSection = ({ data, isLoading }: { data: OrganizationData, isLoadi
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          {/* Location Cards */}
           <div className="space-y-8">
             <div className="mb-8">
               <h3 className="text-2xl font-bold text-white mb-4 flex items-center gap-3">
@@ -329,7 +335,7 @@ const LocationsSection = ({ data, isLoading }: { data: OrganizationData, isLoadi
                 Progress Jogja beroperasi dari dua lokasi strategis di Yogyakarta dengan fasilitas modern untuk produksi dan distribusi.
               </p>
             </div>
-            
+
             {locationsToShow.map((location, index) => (
               <motion.div
                 key={location.id}
@@ -356,7 +362,6 @@ const LocationsSection = ({ data, isLoading }: { data: OrganizationData, isLoadi
             ))}
           </div>
 
-          {/* Interactive Map */}
           <motion.div
             initial={{ opacity: 0, x: 50 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -365,10 +370,7 @@ const LocationsSection = ({ data, isLoading }: { data: OrganizationData, isLoadi
             className="relative"
           >
             <div className="bg-white/5 p-6 rounded-3xl border border-white/10 backdrop-blur-lg">
-              {/* Interactive OpenStreetMap */}
               <InteractiveMap locations={locationsToShow} />
-              
-              {/* Map Info */}
               <div className="mt-4 flex items-center justify-between">
                 <div className="flex items-center gap-2 text-sm text-gray-400">
                   <div className="w-3 h-3 bg-red-500 rounded-full"></div>
