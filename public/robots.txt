@@ -1,0 +1,31 @@
+# robots.txt for Progress Jogja
+# https://progressjogja.vercel.app/robots.txt
+
+User-agent: *
+Allow: /
+
+# Disallow admin and private areas
+Disallow: /admin/
+Disallow: /api/
+Disallow: /auth/
+Disallow: /reset-password/
+Disallow: /_next/
+Disallow: /private/
+Disallow: /*.json$
+Disallow: /profile/*/address
+
+# Allow important paths
+Allow: /
+Allow: /produk
+Allow: /produk/*
+Allow: /privacy-policy
+Allow: /kebijakan-privasi
+
+# Crawl-delay for being respectful
+Crawl-delay: 1
+
+# Sitemap location
+Sitemap: https://progressjogja.vercel.app/sitemap.xml
+
+# Host directive
+Host: https://progressjogja.vercel.app

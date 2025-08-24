@@ -9,6 +9,15 @@ import type { Product as Produk, WishlistItem, UserWithProfile } from '@/types/s
 import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid';
 import { HeartIcon as HeartOutlineIcon } from '@heroicons/react/24/outline';
 
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 export default function ProdukPage() {
   const router = useRouter();
   const [userProfile, setUserProfile] = useState<UserWithProfile | null>(null);
@@ -85,6 +94,55 @@ export default function ProdukPage() {
 
   return (
     <>
+      {/* Structured Data for WebSite */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": "Progress Jogja",
+            "url": "https://progressjogja.vercel.app",
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": {
+                "@type": "EntryPoint",
+                "urlTemplate": "https://progressjogja.vercel.app/produk?search={search_term_string}"
+              },
+              "query-input": "required name=search_term_string"
+            }
+          })
+        }}
+      />
+
+      {/* Structured Data for ItemList */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "ItemList",
+            "itemListElement": produkTerfilter.map((product, index) => ({
+              "@type": "ListItem",
+              "position": index + 1,
+              "item": {
+                "@type": "Product",
+                "@id": `https://progressjogja.vercel.app/produk/${product.id}`,
+                "name": product.name,
+                "description": product.description,
+                "image": product.image_urls?.[0],
+                "offers": {
+                  "@type": "Offer",
+                  "price": product.price?.toString(),
+                  "priceCurrency": "IDR",
+                  "availability": "https://schema.org/InStock"
+                }
+              }
+            }))
+          })
+        }}
+      />
+
       <section className="bg-gradient-to-r from-red-600 to-red-700 text-white py-20">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-6xl font-bold mb-6">Koleksi Produk Kami</h1>
@@ -118,10 +176,17 @@ export default function ProdukPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {produkTerfilter.map((p) => (
-                <div key={p.id} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-2">
+                <article key={p.id} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-2">
                   <div className="relative h-64">
                     {p.image_urls && p.image_urls.length > 0 ? (
-                        <Image src={p.image_urls[0]} alt={p.name} fill className="object-cover" />
+                        <Image 
+                          src={p.image_urls[0]} 
+                          alt={`${p.name} - Produk herbal Progress Jogja`} 
+                          fill 
+                          className="object-cover" 
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                          loading="lazy"
+                        />
                     ) : (
                         <div className="bg-gray-200 h-full w-full"></div>
                     )}
@@ -130,21 +195,29 @@ export default function ProdukPage() {
                         {p.product_types?.name || 'Tanpa Kategori'}
                       </span>
                     </div>
-                    <button onClick={() => toggleWishlist(p.id)} className="absolute top-4 right-4 bg-white/80 backdrop-blur-sm p-2 rounded-full text-red-500 hover:bg-white transition-transform hover:scale-110">
+                    <button 
+                      onClick={() => toggleWishlist(p.id)} 
+                      className="absolute top-4 right-4 bg-white/80 backdrop-blur-sm p-2 rounded-full text-red-500 hover:bg-white transition-transform hover:scale-110"
+                      aria-label={isProductInWishlist(p.id) ? 'Hapus dari wishlist' : 'Tambah ke wishlist'}
+                    >
                       {isProductInWishlist(p.id) ? <HeartSolidIcon className="w-6 h-6" /> : <HeartOutlineIcon className="w-6 h-6" />}
                     </button>
                   </div>
                   <div className="p-6">
-                    <h3 className="text-2xl font-bold text-gray-800 mb-2">{p.name}</h3>
+                    <h2 className="text-2xl font-bold text-gray-800 mb-2">{p.name}</h2>
                     <p className="text-gray-600 mb-4 leading-relaxed line-clamp-3">{p.description}</p>
                     <div className="flex justify-between items-center mb-4">
                       <span className="text-2xl font-bold text-red-600">{formatRupiah(p.price || 0)}</span>
-                      <button onClick={() => addToCart(p.id)} className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">
+                      <button 
+                        onClick={() => addToCart(p.id)} 
+                        className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+                        aria-label={`Tambah ${p.name} ke keranjang`}
+                      >
                         Tambah ke Keranjang
                       </button>
                     </div>
                   </div>
-                </div>
+                </article>
               ))}
             </div>
           )}
