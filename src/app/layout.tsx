@@ -124,6 +124,9 @@ export default function RootLayout({
   return (
     <html lang="id" dir="ltr">
       <head>
+        {/* Google Site Verification */}
+        <meta name="google-site-verification" content="SeU7j1p_RghwijQK39HcGyU9L5su7-xhodHrPXhE2Xs" />
+        
         {/* Preconnect to external domains for better performance */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
